@@ -1,0 +1,2777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HLD & TSC Review</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+/* ============================================================
+   CSS VARIABLES & THEME
+   ============================================================ */
+:root {
+  --bg-primary: #0f1419;
+  --bg-secondary: #1a1f2e;
+  --bg-tertiary: #242b3d;
+  --bg-card: #1e2538;
+  --bg-hover: #2a3349;
+  --bg-input: #151a27;
+  --border: #2d3548;
+  --border-focus: #4c7bf5;
+  --text-primary: #e8ecf4;
+  --text-secondary: #8892a8;
+  --text-muted: #5a6478;
+  --text-link: #6fa1f8;
+  --accent: #4c7bf5;
+  --accent-hover: #6b93f7;
+  --accent-muted: rgba(76, 123, 245, 0.15);
+  --accent-glow: rgba(76, 123, 245, 0.3);
+  --success: #3dd68c;
+  --success-bg: rgba(61, 214, 140, 0.12);
+  --warning: #f5a623;
+  --warning-bg: rgba(245, 166, 35, 0.12);
+  --danger: #f5564a;
+  --danger-bg: rgba(245, 86, 74, 0.12);
+  --info: #4cc9f0;
+  --info-bg: rgba(76, 201, 240, 0.12);
+  --purple: #a78bfa;
+  --purple-bg: rgba(167, 139, 250, 0.12);
+  --orange: #fb923c;
+  --orange-bg: rgba(251, 146, 60, 0.12);
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow: 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.35);
+  --transition: 0.2s ease;
+  --sidebar-width: 260px;
+  --header-height: 56px;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Oxygen, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ============================================================
+   APP LAYOUT
+   ============================================================ */
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 200;
+  transition: transform var(--transition);
+}
+
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--header-height);
+}
+
+.sidebar-logo {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sidebar-brand h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.sidebar-brand small {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  overflow-y: auto;
+}
+
+.nav-section {
+  margin-bottom: 8px;
+}
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 8px 12px 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition);
+  user-select: none;
+  position: relative;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-item.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+.nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.nav-item.active svg { opacity: 1; }
+.nav-item .badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+}
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.sidebar-user-info {
+  min-width: 0;
+}
+.sidebar-user-info .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-user-info .role {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar {
+  height: var(--header-height);
+  min-height: var(--header-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  z-index: 100;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+}
+.menu-toggle svg { width: 22px; height: 22px; }
+
+.topbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+}
+
+/* ============================================================
+   COMMON COMPONENTS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn svg { width: 16px; height: 16px; }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.btn-secondary:hover { background: var(--bg-hover); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon {
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-icon:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.btn-icon svg { width: 18px; height: 18px; }
+.btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-danger:hover { opacity: 0.85; }
+.btn-success { background: var(--success); color: #000; border-color: var(--success); }
+
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-draft { background: var(--info-bg); color: var(--info); }
+.badge-review { background: var(--warning-bg); color: var(--warning); }
+.badge-approved { background: var(--success-bg); color: var(--success); }
+.badge-archived { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+.badge-changes { background: var(--orange-bg); color: var(--orange); }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.card:hover {
+  border-color: var(--accent-glow);
+}
+.card-clickable { cursor: pointer; }
+.card-clickable:hover { box-shadow: var(--shadow); }
+
+input[type="text"], input[type="search"], textarea, select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color var(--transition);
+  width: 100%;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+.search-box {
+  position: relative;
+  max-width: 300px;
+}
+.search-box svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+.search-box input { padding-left: 32px; }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state h3 { font-size: 16px; color: var(--text-secondary); margin-bottom: 6px; }
+.empty-state p { font-size: 13px; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all var(--transition);
+  user-select: none;
+}
+.tab:hover { color: var(--text-secondary); }
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.15s ease;
+}
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.2s ease;
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-header h3 { font-size: 16px; font-weight: 600; }
+.modal-body { padding: 20px; }
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ============================================================
+   PAGE: DASHBOARD
+   ============================================================ */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+.stat-card .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat-card .stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.activity-feed { display: flex; flex-direction: column; gap: 8px; }
+.activity-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-size: 13px;
+}
+.activity-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+.activity-content { flex: 1; min-width: 0; }
+.activity-content .activity-text { color: var(--text-secondary); }
+.activity-content .activity-text strong { color: var(--text-primary); font-weight: 600; }
+.activity-content .activity-time { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.recent-docs { display: flex; flex-direction: column; gap: 8px; }
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.doc-row:hover { background: var(--bg-hover); }
+.doc-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.doc-icon svg { width: 18px; height: 18px; }
+.doc-icon.hld { background: var(--accent-muted); color: var(--accent); }
+.doc-icon.tsc { background: var(--purple-bg); color: var(--purple); }
+.doc-row-info { flex: 1; min-width: 0; }
+.doc-row-info .doc-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-row-info .doc-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   PAGE: DOCUMENTS
+   ============================================================ */
+.doc-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-chip {
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+}
+.filter-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.filter-chip.active { background: var(--accent-muted); border-color: var(--accent); color: var(--accent); }
+
+.doc-list { display: flex; flex-direction: column; gap: 10px; }
+
+.doc-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  cursor: pointer;
+}
+.doc-card-body { flex: 1; min-width: 0; }
+.doc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.doc-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.doc-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.doc-card-footer .avatar-sm {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: #fff;
+  margin-right: -4px;
+}
+.doc-card-footer .meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+/* ============================================================
+   PAGE: EDITOR
+   ============================================================ */
+.editor-layout {
+  display: flex;
+  gap: 0;
+  height: calc(100vh - var(--header-height) - 40px);
+  margin: -20px;
+}
+
+.editor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-wrap: wrap;
+}
+.editor-toolbar .divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.editor-title-input {
+  font-size: 22px;
+  font-weight: 700;
+  padding: 16px 20px 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  width: 100%;
+  outline: none;
+}
+.editor-title-input::placeholder { color: var(--text-muted); }
+
+.editor-area {
+  flex: 1;
+  padding: 0 20px 20px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.7;
+  outline: none;
+  min-height: 200px;
+  color: var(--text-primary);
+}
+.editor-area:empty::before {
+  content: "Start writing your document...";
+  color: var(--text-muted);
+}
+.editor-area h1 { font-size: 24px; margin: 16px 0 8px; }
+.editor-area h2 { font-size: 20px; margin: 14px 0 6px; }
+.editor-area h3 { font-size: 17px; margin: 12px 0 4px; }
+.editor-area p { margin-bottom: 8px; }
+.editor-area ul, .editor-area ol { margin: 8px 0 8px 20px; }
+.editor-area blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--text-secondary);
+}
+.editor-area code {
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.editor-area pre {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+.editor-area pre code { background: transparent; padding: 0; }
+
+.editor-sidebar {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.editor-sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.editor-sidebar-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition);
+}
+.editor-sidebar-tab:hover { color: var(--text-secondary); }
+.editor-sidebar-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.editor-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* Comments */
+.comment-thread {
+  margin-bottom: 12px;
+}
+.comment {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  margin-bottom: 6px;
+}
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.comment-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+.comment-author { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.comment-time { font-size: 10px; color: var(--text-muted); margin-left: auto; }
+.comment-body { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.comment-action {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+}
+.comment-action:hover { color: var(--accent); }
+.comment-reply {
+  margin-left: 16px;
+}
+.comment-input-area {
+  margin-top: 8px;
+}
+.comment-input-area textarea {
+  min-height: 60px;
+  resize: vertical;
+  margin-bottom: 6px;
+}
+.comment.resolved {
+  opacity: 0.5;
+}
+
+/* Version history */
+.version-list { display: flex; flex-direction: column; gap: 8px; }
+.version-item {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.version-item:hover { background: var(--bg-hover); }
+.version-item .version-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.version-item .version-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.version-item .version-diff {
+  margin-top: 4px;
+  font-size: 11px;
+}
+.version-item .diff-add { color: var(--success); }
+.version-item .diff-del { color: var(--danger); }
+
+/* Review info */
+.review-info-section { margin-bottom: 16px; }
+.review-info-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.reviewer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.reviewer-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+.reviewer-name { font-size: 13px; flex: 1; }
+.reviewer-status { font-size: 11px; font-weight: 600; }
+.reviewer-status.approved { color: var(--success); }
+.reviewer-status.pending { color: var(--warning); }
+.reviewer-status.changes { color: var(--orange); }
+
+/* ============================================================
+   PAGE: TEMPLATES
+   ============================================================ */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.template-card {
+  padding: 16px;
+  cursor: pointer;
+}
+.template-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.template-card-icon svg { width: 20px; height: 20px; }
+.template-card h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.template-card p {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.template-card .template-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   PAGE: REVIEWS
+   ============================================================ */
+.review-list { display: flex; flex-direction: column; gap: 10px; }
+.review-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+.review-card-body { flex: 1; min-width: 0; }
+.review-card-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.review-card-meta { font-size: 12px; color: var(--text-muted); }
+.review-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ============================================================
+   PAGE: DB VISUALIZER
+   ============================================================ */
+.visualizer-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.schema-input-area {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.schema-input-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-tertiary);
+}
+.schema-input-header h4 { font-size: 13px; font-weight: 600; }
+.schema-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 14px;
+  background: var(--bg-input);
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+.diagram-output {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+.diagram-output .mermaid {
+  width: 100%;
+}
+.diagram-output svg { max-width: 100%; }
+
+.schema-examples {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   PAGE: FEATURES
+   ============================================================ */
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.feature-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.feature-group h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.feature-group h3 svg { width: 18px; height: 18px; }
+.feature-list {
+  list-style: none;
+}
+.feature-list li {
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+.feature-list li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.feature-list li.done::before { background: var(--success); }
+.feature-list li.planned::before { background: var(--warning); }
+
+/* ============================================================
+   FORM GROUPS
+   ============================================================ */
+.form-group {
+  margin-bottom: 14px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+.form-row .form-group { flex: 1; }
+
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-height: 36px;
+  align-items: center;
+}
+.tag-input .tag { cursor: default; }
+.tag-input .tag .tag-remove {
+  cursor: pointer;
+  margin-left: 4px;
+  opacity: 0.6;
+}
+.tag-input .tag .tag-remove:hover { opacity: 1; }
+.tag-input input {
+  flex: 1;
+  min-width: 80px;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  font-size: 12px;
+}
+.tag-input input:focus { box-shadow: none; }
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+   ============================================================ */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--info); }
+
+/* ============================================================
+   MOBILE RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    z-index: 300;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 250;
+  }
+  .sidebar-backdrop.show { display: block; }
+  .menu-toggle { display: flex; }
+
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+
+  .editor-sidebar { display: none; }
+  .editor-sidebar.mobile-open {
+    display: flex;
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 340px;
+    z-index: 300;
+    box-shadow: var(--shadow-lg);
+  }
+  .editor-layout { height: calc(100vh - var(--header-height)); margin: -20px; }
+
+  .template-grid { grid-template-columns: 1fr; }
+
+  .topbar-title { font-size: 14px; }
+
+  .doc-filters { gap: 6px; }
+
+  .toast-container { left: 16px; right: 16px; bottom: 16px; }
+  .toast { min-width: auto; }
+
+  .modal { max-width: 100%; margin: 8px; border-radius: var(--radius); }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .editor-sidebar { width: 260px; }
+}
+
+@media (min-width: 1200px) {
+  .stat-row { grid-template-columns: repeat(4, 1fr); }
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============================================================
+   PRINT STYLES
+   ============================================================ */
+@media print {
+  .sidebar, .topbar, .editor-toolbar, .editor-sidebar { display: none; }
+  .main { overflow: visible; }
+  .content { overflow: visible; }
+  .editor-layout { height: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- Sidebar Backdrop (mobile) -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">HD</div>
+      <div class="sidebar-brand">
+        <h2>HLD & TSC</h2>
+        <small>Document Review</small>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">Main</div>
+        <div class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" onclick="navigate('documents')" data-page="documents">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Documents
+          <span class="badge" id="docCount">8</span>
+        </div>
+        <div class="nav-item" onclick="navigate('templates')" data-page="templates">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          Templates
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Workflow</div>
+        <div class="nav-item" onclick="navigate('reviews')" data-page="reviews">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Reviews
+          <span class="badge" id="reviewCount">3</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Tools</div>
+        <div class="nav-item" onclick="navigate('visualizer')" data-page="visualizer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-7.07-15.07l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+          DB Visualizer
+        </div>
+        <div class="nav-item" onclick="navigate('features')" data-page="features">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Features
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" style="background: linear-gradient(135deg, #4c7bf5, #a78bfa);">RM</div>
+        <div class="sidebar-user-info">
+          <div class="name">Ryan Murphy</div>
+          <div class="role">Admin</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-actions" id="topbarActions"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ============================================================
+// DATA STORE
+// ============================================================
+const COLORS = ['#4c7bf5','#a78bfa','#3dd68c','#f5a623','#f5564a','#4cc9f0','#fb923c','#e879f9'];
+
+const defaultUsers = [
+  { id: 'u1', name: 'Ryan Murphy', initials: 'RM', color: '#4c7bf5', role: 'Admin' },
+  { id: 'u2', name: 'Sarah Chen', initials: 'SC', color: '#a78bfa', role: 'Architect' },
+  { id: 'u3', name: 'Jake Torres', initials: 'JT', color: '#3dd68c', role: 'Engineer' },
+  { id: 'u4', name: 'Priya Sharma', initials: 'PS', color: '#f5a623', role: 'Lead' },
+  { id: 'u5', name: 'Alex Kim', initials: 'AK', color: '#4cc9f0', role: 'Reviewer' },
+];
+
+const defaultTags = [
+  { id: 't1', name: 'Architecture', color: '#4c7bf5' },
+  { id: 't2', name: 'Security', color: '#f5564a' },
+  { id: 't3', name: 'Performance', color: '#f5a623' },
+  { id: 't4', name: 'Database', color: '#3dd68c' },
+  { id: 't5', name: 'API Design', color: '#a78bfa' },
+  { id: 't6', name: 'Infrastructure', color: '#4cc9f0' },
+  { id: 't7', name: 'Migration', color: '#fb923c' },
+];
+
+const defaultTemplates = [
+  {
+    id: 'tpl1', name: 'HLD Template', type: 'hld',
+    description: 'Standard High-Level Design document template with sections for overview, architecture, data model, and security.',
+    content: '<h1>High-Level Design: [Project Name]</h1><h2>1. Overview</h2><p>Provide a brief description of the project and its objectives.</p><h2>2. Architecture</h2><p>Describe the system architecture, components, and their interactions.</p><h2>3. Data Model</h2><p>Define the data model, entities, and relationships.</p><h2>4. Security Considerations</h2><p>Outline security requirements and threat mitigations.</p><h2>5. Performance Requirements</h2><p>Specify performance targets and scaling strategy.</p><h2>6. Dependencies</h2><p>List external services, libraries, and team dependencies.</p><h2>7. Rollout Plan</h2><p>Describe the deployment strategy and rollback procedures.</p>',
+    usedCount: 14, createdBy: 'u1', createdAt: '2026-03-15'
+  },
+  {
+    id: 'tpl2', name: 'TSC Decision Record', type: 'tsc',
+    description: 'Template for TSC decisions including context, options considered, and resolution.',
+    content: '<h1>TSC Decision: [Title]</h1><h2>Status</h2><p>[Proposed | Accepted | Deprecated | Superseded]</p><h2>Context</h2><p>Describe the issue motivating this decision.</p><h2>Decision</h2><p>Describe the decision that was made.</p><h2>Options Considered</h2><h3>Option A</h3><p>Description, pros, and cons.</p><h3>Option B</h3><p>Description, pros, and cons.</p><h2>Consequences</h2><p>Describe the resulting context after applying the decision.</p>',
+    usedCount: 9, createdBy: 'u2', createdAt: '2026-03-20'
+  },
+  {
+    id: 'tpl3', name: 'API Design Spec', type: 'hld',
+    description: 'API design specification with endpoints, request/response schemas, and auth requirements.',
+    content: '<h1>API Design: [Service Name]</h1><h2>1. Base URL & Versioning</h2><p>Define the base URL pattern and versioning strategy.</p><h2>2. Authentication</h2><p>Describe auth mechanism (OAuth2, API key, JWT).</p><h2>3. Endpoints</h2><h3>GET /resource</h3><p>Description, query params, response schema.</p><h3>POST /resource</h3><p>Description, request body, response schema.</p><h2>4. Error Handling</h2><p>Standard error response format and codes.</p><h2>5. Rate Limiting</h2><p>Rate limit policies and headers.</p>',
+    usedCount: 7, createdBy: 'u4', createdAt: '2026-03-25'
+  },
+  {
+    id: 'tpl4', name: 'Database Migration Plan', type: 'hld',
+    description: 'Schema migration plan with rollback strategy and data integrity checks.',
+    content: '<h1>Migration Plan: [Migration Name]</h1><h2>1. Summary</h2><p>Brief overview of what changes and why.</p><h2>2. Schema Changes</h2><p>List all DDL changes (CREATE, ALTER, DROP).</p><h2>3. Data Migration</h2><p>Describe any data transformation or backfill required.</p><h2>4. Rollback Plan</h2><p>Steps to reverse the migration safely.</p><h2>5. Testing Checklist</h2><ul><li>Unit tests pass</li><li>Integration tests pass</li><li>Performance benchmarks met</li><li>Rollback tested</li></ul>',
+    usedCount: 5, createdBy: 'u3', createdAt: '2026-04-01'
+  },
+  {
+    id: 'tpl5', name: 'Security Review', type: 'tsc',
+    description: 'Security assessment template covering threat modeling, vulnerabilities, and mitigations.',
+    content: '<h1>Security Review: [Component]</h1><h2>1. Threat Model</h2><p>Identify assets, threat actors, and attack surfaces.</p><h2>2. Vulnerabilities Identified</h2><p>List discovered vulnerabilities with severity.</p><h2>3. Mitigations</h2><p>Proposed fixes and controls for each vulnerability.</p><h2>4. Compliance Checklist</h2><ul><li>OWASP Top 10 reviewed</li><li>Input validation verified</li><li>Auth/AuthZ tested</li><li>Secrets management confirmed</li></ul>',
+    usedCount: 3, createdBy: 'u5', createdAt: '2026-04-03'
+  },
+  {
+    id: 'tpl6', name: 'Infrastructure Design', type: 'hld',
+    description: 'Cloud infrastructure design template for Kubernetes deployments.',
+    content: '<h1>Infrastructure Design: [Service/Project]</h1><h2>1. Overview</h2><p>Cluster topology, namespaces, and resource allocation.</p><h2>2. Compute</h2><p>Pod specs, replicas, auto-scaling policies.</p><h2>3. Networking</h2><p>Ingress, service mesh, network policies.</p><h2>4. Storage</h2><p>PVCs, backup strategy, retention.</p><h2>5. Observability</h2><p>Logging, metrics, alerting, and tracing.</p><h2>6. Disaster Recovery</h2><p>Backup, restore, and failover procedures.</p>',
+    usedCount: 6, createdBy: 'u1', createdAt: '2026-04-05'
+  }
+];
+
+const defaultDocuments = [
+  {
+    id: 'd0', title: 'NES Service Project Template', type: 'hld', status: 'review',
+    description: 'Comprehensive template for scaffolding new NES (Never-Ending Support) backend services, covering project structure, build system, configuration, Docker, CI/CD, deployment, and scaffolding checklist.',
+    content: '<h1>NES Service Project Template</h1><p>A comprehensive template for scaffolding new NES (Never-Ending Support) backend services, derived from the production <code>nes-ontology</code> service. This template covers project structure, build system, configuration, Docker, CI/CD, deployment, and a scaffolding checklist.</p><hr><h2>1. Project Structure</h2><pre><code>nes-&lt;service-name&gt;/\n\u251c\u2500\u2500 .github/\n\u2502   \u2514\u2500\u2500 workflows/\n\u2502       \u251c\u2500\u2500 ci.yml                    # PR checks (lint, typecheck, boundaries, unit tests)\n\u2502       \u251c\u2500\u2500 release-to-stage.yml      # Main branch \u2192 build image \u2192 create stage deploy PR\n\u2502       \u251c\u2500\u2500 promote-to-prod.yml       # Manual: promote stage image tag to prod values PR\n\u2502       \u251c\u2500\u2500 e2e-staging.yml           # E2E gate on prod deploy PRs (tests against staging)\n\u2502       \u2514\u2500\u2500 publish-client.yml        # Publish @nes/&lt;name&gt;-client to Artifactory npm-dev\n\u251c\u2500\u2500 client/                           # GraphQL client package (@nes/&lt;name&gt;-client)\n\u251c\u2500\u2500 data/\n\u2502   \u2514\u2500\u2500 migrations/                   # SQL migrations (ordered by timestamp)\n\u251c\u2500\u2500 docs/\n\u2502   \u2514\u2500\u2500 migrations/                   # Architecture summaries for each migration\n\u251c\u2500\u2500 infra/\n\u2502   \u2514\u2500\u2500 helm/                         # Helm values for stage and prod\n\u251c\u2500\u2500 scripts/                          # Setup and utility scripts\n\u251c\u2500\u2500 src/\n\u2502   \u251c\u2500\u2500 main.ts                       # Entrypoint\n\u2502   \u251c\u2500\u2500 config.ts                     # Centralized env var access\n\u2502   \u251c\u2500\u2500 domain.ts                     # App/request service type definitions\n\u2502   \u251c\u2500\u2500 services.ts                   # Service factory functions\n\u2502   \u251c\u2500\u2500 db-config.ts                  # Knex database connection config\n\u2502   \u251c\u2500\u2500 generated/                    # Codegen output (committed)\n\u2502   \u251c\u2500\u2500 app/                          # Fastify plugins and routes\n\u2502   \u251c\u2500\u2500 security/                     # Auth helpers (JWT, OIDC)\n\u2502   \u251c\u2500\u2500 shared/                       # Pure utilities (lowest layer)\n\u2502   \u2514\u2500\u2500 &lt;domain&gt;/                    # Domain modules (one per bounded context)\n\u2502       \u251c\u2500\u2500 schema.graphql            # Domain GraphQL schema\n\u2502       \u251c\u2500\u2500 resolvers.ts              # GraphQL resolvers\n\u2502       \u251c\u2500\u2500 service.ts                # Domain business logic\n\u2502       \u251c\u2500\u2500 repository.ts             # Database access\n\u2502       \u2514\u2500\u2500 types.ts                  # Domain-specific types\n\u251c\u2500\u2500 tests/                            # Unit and E2E tests\n\u251c\u2500\u2500 tools/                            # Ingestion scripts and CLI tools\n\u251c\u2500\u2500 Dockerfile                        # Production container image\n\u251c\u2500\u2500 package.json / pnpm-workspace.yaml\n\u251c\u2500\u2500 tsconfig.json / biome.json\n\u251c\u2500\u2500 vitest.config.ts / vitest.e2e.config.ts\n\u2514\u2500\u2500 CLAUDE.md / README.md</code></pre><h2>2. Build System (pnpm)</h2><p>Uses pnpm workspaces with a dependency catalog. All dependency versions are pinned centrally in <code>pnpm-workspace.yaml</code> using <code>catalog:</code> references.</p><p><strong>Key scripts:</strong></p><ul><li><code>pnpm dev</code> \u2014 Start with hot reload (<code>node --watch src/main.ts</code>)</li><li><code>pnpm biome</code> / <code>pnpm biome:fix</code> \u2014 Lint and format</li><li><code>pnpm codegen</code> \u2014 Generate GraphQL types</li><li><code>pnpm lint:boundaries</code> \u2014 Check module boundaries</li><li><code>pnpm test</code> / <code>pnpm test:e2e</code> \u2014 Run unit / E2E tests</li><li><code>pnpm typecheck</code> \u2014 TypeScript type checking</li></ul><h2>3. TypeScript Configuration</h2><p><strong>Key decisions:</strong></p><ul><li><code>noEmit: true</code> \u2014 Node 24 runs <code>.ts</code> natively via type stripping; no build step</li><li><code>erasableSyntaxOnly: true</code> \u2014 Required for Node\'s native TS support</li><li><code>verbatimModuleSyntax: true</code> \u2014 Enforces <code>import type</code> for type-only imports</li><li><code>noUncheckedIndexedAccess: true</code> \u2014 All index access may be <code>undefined</code></li></ul><h2>4. Linting &amp; Formatting</h2><p>Uses <strong>Biome</strong> for formatting and general linting (2-space indent, single quotes, 120-char lines). ESLint is scoped to <strong>module boundary enforcement only</strong> via <code>eslint-plugin-boundaries</code>.</p><h2>5. Application Entry Point</h2><p>Entry via <code>src/main.ts</code> using <code>@nes/shared</code> app builder. Centralized configuration in <code>src/config.ts</code> covering:</p><ul><li>Service metadata (name, version, lane)</li><li>Security (Keycloak OIDC)</li><li>Observability (OpenTelemetry)</li><li>Apollo Federation subgraph</li><li>Database (Knex)</li><li>Fastify autoload (routes, plugins)</li></ul><h2>6. GraphQL Code Generation</h2><p>Uses <code>@graphql-codegen/cli</code> to generate both server-side resolver types (<code>src/generated/graphql.ts</code>) and client-side operation types (<code>client/generated.ts</code>). Federation-compatible with typed document nodes.</p><h2>7. Test Configuration</h2><p><strong>Unit tests</strong> via <code>vitest.config.ts</code> \u2014 run in Node environment, globals enabled, V8 coverage.</p><p><strong>E2E tests</strong> via <code>vitest.e2e.config.ts</code> \u2014 30s timeout, 2 retries, sequential execution, no coverage.</p><h2>8. Docker Setup</h2><p><strong>Key patterns:</strong></p><ul><li>Alpine Node 24.12.0 base for minimal image size</li><li>Non-root <code>node</code> user (UID 1000) for security</li><li>BuildKit secret mounting for <code>.npmrc</code> (private registry auth)</li><li>Production-only deps via <code>--prod --frozen-lockfile</code></li><li>RDS CA bundle fetched at build time for PostgreSQL TLS</li><li>No build step needed \u2014 Node 24 runs <code>.ts</code> natively</li></ul><h2>9. CI/CD Workflows</h2><p>Five GitHub Actions workflows:</p><ul><li><strong>ci.yml</strong> \u2014 PR checks: commit lint, markdown lint, module boundaries, code quality (Biome), typecheck, codegen verification, client build, unit tests</li><li><strong>release-to-stage.yml</strong> \u2014 On push to main: build Docker image, tag with 7-char SHA, push to GHCR, create PR to update <code>values-stage.yml</code></li><li><strong>promote-to-prod.yml</strong> \u2014 Manual dispatch: copy stage image tag to <code>values-prod.yml</code>, promote client npm-dev \u2192 npm-prod</li><li><strong>e2e-staging.yml</strong> \u2014 Production gate: runs E2E tests against staging when <code>values-prod.yml</code> is updated</li><li><strong>publish-client.yml</strong> \u2014 Auto-publish client package to Artifactory on client changes</li></ul><h2>10. Deployment (Helm + ArgoCD)</h2><p><strong>Deployment Flow:</strong></p><p>Feature branch \u2192 PR \u2192 Merge to main \u2192 Build Docker image (7-char SHA) \u2192 Push to GHCR \u2192 Create stage deploy PR (auto-approved) \u2192 ArgoCD syncs stage \u2192 Manual promote-to-prod \u2192 E2E gate \u2192 ArgoCD syncs prod</p><p><strong>Stage vs Prod differences:</strong></p><table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px">Setting</th><th style="text-align:left;padding:6px">Stage</th><th style="text-align:left;padding:6px">Prod</th></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">minReplicas</td><td style="padding:6px">1</td><td style="padding:6px">3</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">maxReplicas</td><td style="padding:6px">2</td><td style="padding:6px">5</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">CPU requests</td><td style="padding:6px">250m</td><td style="padding:6px">500m</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">Memory limits</td><td style="padding:6px">512M</td><td style="padding:6px">1Gi</td></tr></table><h2>11. Conventions &amp; Rules</h2><p><strong>Commit messages:</strong> Conventional commits with scoped prefixes (<code>feat(&lt;domain&gt;)</code>, <code>fix(&lt;domain&gt;)</code>, <code>chore(stage)</code>, etc.)</p><p><strong>Module Boundary Architecture:</strong> Default \u201cdisallow\u201d \u2014 every cross-boundary import must be explicitly allowed. Domains are isolated from each other. Shared and generated modules form the bottom layer.</p><p><strong>Code rules:</strong></p><ol><li>No ad hoc <code>process.env</code> \u2014 centralize in <code>src/config.ts</code></li><li>No <code>new Date()</code> \u2014 use <code>Temporal</code> from <code>@js-temporal/polyfill</code></li><li>No <code>any</code> without justification</li><li>Biome defaults \u2014 2-space indent, single quotes, 120-char lines</li><li>Migration docs \u2014 every SQL migration gets an architecture summary</li></ol><h2>12. Required GitHub Secrets &amp; Variables</h2><p><strong>Repository Variables:</strong></p><ul><li><code>AWS_OIDC_ROLE_ARN</code> \u2014 AWS role ARN for OIDC federation</li><li><code>AWS_REGION</code> \u2014 AWS region for OIDC</li><li><code>NES_UNIVERSE_CLIENT_ID</code> \u2014 Keycloak client ID for E2E OAuth2 token</li></ul><p><strong>Repository Secrets:</strong></p><ul><li><code>NES_CI_READ_TOKEN</code> \u2014 GitHub PAT for creating PRs</li><li><code>NES_UNIVERSE_DEV_CLIENT_SECRET</code> \u2014 Keycloak client secret for E2E tests</li></ul><h2>13. Scaffolding Checklist</h2><h3>Initial Setup</h3><ul><li>Create repo <code>neverendingsupport/nes-&lt;service-name&gt;</code></li><li>Copy template files from this document</li><li>Replace all <code>&lt;service-name&gt;</code> / <code>&lt;name&gt;</code> / <code>&lt;domain&gt;</code> placeholders</li><li>Set <code>.nvmrc</code> to <code>24.12.0</code></li><li>Run <code>corepack enable &amp;&amp; pnpm install</code></li></ul><h3>Configuration</h3><ul><li>Configure <code>src/config.ts</code> with service-specific env vars</li><li>Configure <code>src/db-config.ts</code> with database connections</li><li>Define <code>src/domain.ts</code> with app/request service types</li><li>Implement <code>src/services.ts</code> service factories</li></ul><h3>GraphQL Schema</h3><ul><li>Create <code>src/&lt;domain&gt;/schema.graphql</code> for each domain</li><li>Run <code>pnpm codegen</code> to generate types</li><li>Commit generated files</li></ul><h3>CI/CD</h3><ul><li>Create all 5 workflow files in <code>.github/workflows/</code></li><li>Set required repository secrets and variables</li><li>Configure branch protection on <code>main</code></li></ul><h3>Deployment</h3><ul><li>Create Helm values for stage and prod</li><li>Configure ArgoCD application</li><li>Set GHCR image pull secret in target namespaces</li><li>Verify health endpoint at <code>/internal/health</code></li></ul><h3>Validation</h3><ul><li><code>pnpm biome:fix</code> passes</li><li><code>pnpm typecheck</code> passes</li><li><code>pnpm lint:boundaries</code> passes</li><li><code>pnpm test</code> passes</li><li><code>pnpm codegen</code> produces no uncommitted changes</li><li>Docker build succeeds locally</li><li>Service starts with <code>LANE=local AUTH_ENABLED=false pnpm dev</code></li></ul>',
+    tags: ['t1', 't6', 't5'], author: 'u1', collaborators: ['u2', 'u3', 'u4'],
+    createdAt: '2026-04-05', updatedAt: '2026-04-08',
+    versions: [
+      { id: 'v0a', label: 'Initial template from nes-ontology', author: 'u1', date: '2026-04-05', additions: 1536, deletions: 0 },
+      { id: 'v0b', label: 'Added CI/CD workflow details', author: 'u3', date: '2026-04-06', additions: 412, deletions: 34 },
+      { id: 'v0c', label: 'Added scaffolding checklist', author: 'u1', date: '2026-04-07', additions: 198, deletions: 12 },
+      { id: 'v0d', label: 'Review feedback incorporated', author: 'u2', date: '2026-04-08', additions: 67, deletions: 29 }
+    ],
+    comments: [
+      { id: 'c0a', author: 'u2', text: 'This is an excellent reference. The module boundary architecture diagram is particularly clear.', date: '2026-04-06', resolved: false, replies: [
+        { id: 'c0a1', author: 'u1', text: 'Thanks Sarah! The boundaries pattern has been battle-tested on nes-ontology for months.', date: '2026-04-06' }
+      ]},
+      { id: 'c0b', author: 'u4', text: 'Should we add a section on database connection pooling configuration? The Knex defaults may not be optimal for all services.', date: '2026-04-07', resolved: false, replies: [
+        { id: 'c0b1', author: 'u3', text: 'Good point. I can add recommended pool settings for stage vs prod.', date: '2026-04-07' }
+      ]},
+      { id: 'c0c', author: 'u5', text: 'The E2E test OAuth2 flow looks solid. One question: should we document the staging IDP URL as a convention or make it configurable per service?', date: '2026-04-08', resolved: false, replies: [] }
+    ],
+    reviews: [
+      { reviewer: 'u2', status: 'approved', date: '2026-04-07', comment: 'Comprehensive and well-structured. This will save significant time on new service scaffolding.' },
+      { reviewer: 'u4', status: 'changes', date: '2026-04-07', comment: 'Need to add connection pool config guidance. Otherwise looks great.' },
+      { reviewer: 'u5', status: 'pending', date: null, comment: null }
+    ]
+  },
+  {
+    id: 'd1', title: 'Agent Executor Platform HLD', type: 'hld', status: 'approved',
+    description: 'High-level design for the agent executor platform including container orchestration, MCP integration, and security model.',
+    content: '<h1>Agent Executor Platform HLD</h1><h2>1. Overview</h2><p>The Agent Executor Platform provides a secure, isolated environment for executing AI agent tasks within the HeroDevs ecosystem. It enables agents to perform complex operations while maintaining tenant isolation and audit trails.</p><h2>2. Architecture</h2><p>The platform consists of three main components:</p><ul><li><strong>Executor Service</strong> - Manages agent lifecycle, resource allocation, and task scheduling</li><li><strong>MCP Gateway</strong> - Routes tool calls through the Model Context Protocol layer</li><li><strong>Sandbox Runtime</strong> - Provides isolated execution environments with resource limits</li></ul><h2>3. Data Model</h2><p>Core entities include Agent, Execution, Task, and AuditLog. Each execution is scoped to a tenant and tracked with full provenance.</p><h2>4. Security</h2><p>All executions run in unprivileged containers with network policies. Tool access is governed by OAuth2 scopes and RLS policies ensure tenant data isolation.</p>',
+    tags: ['t1', 't2', 't6'], author: 'u1', collaborators: ['u2', 'u3'],
+    createdAt: '2026-03-20', updatedAt: '2026-04-06',
+    versions: [
+      { id: 'v1', label: 'Initial Draft', author: 'u1', date: '2026-03-20', additions: 245, deletions: 0 },
+      { id: 'v2', label: 'Added security section', author: 'u2', date: '2026-03-25', additions: 89, deletions: 12 },
+      { id: 'v3', label: 'Final review updates', author: 'u1', date: '2026-04-06', additions: 34, deletions: 18 }
+    ],
+    comments: [
+      { id: 'c1', author: 'u2', text: 'The sandbox runtime should also include CPU time limits per execution.', date: '2026-03-26', resolved: true, replies: [
+        { id: 'c1r1', author: 'u1', text: 'Good point. Added to the resource limits section.', date: '2026-03-26' }
+      ]},
+      { id: 'c2', author: 'u4', text: 'Should we document the MCP tool registration flow here or in a separate doc?', date: '2026-04-01', resolved: false, replies: [] }
+    ],
+    reviews: [
+      { reviewer: 'u2', status: 'approved', date: '2026-04-05', comment: 'LGTM. Security model is solid.' },
+      { reviewer: 'u4', status: 'approved', date: '2026-04-06', comment: 'Approved with minor suggestions incorporated.' },
+      { reviewer: 'u5', status: 'approved', date: '2026-04-06', comment: 'Architecture looks good.' }
+    ]
+  },
+  {
+    id: 'd2', title: 'Channel Messaging System Design', type: 'hld', status: 'review',
+    description: 'Inter-agent communication protocol using channels for pub/sub messaging with persistence and replay.',
+    content: '<h1>Channel Messaging System Design</h1><h2>1. Overview</h2><p>The Channel Messaging System enables real-time, persistent communication between agents, services, and human operators. It provides pub/sub semantics with guaranteed delivery and message replay.</p><h2>2. Architecture</h2><p>Built on a topic-based messaging model with persistent storage:</p><ul><li><strong>Channel Service</strong> - Manages channel lifecycle, membership, and ACLs</li><li><strong>Message Broker</strong> - Handles message routing, delivery, and persistence</li><li><strong>Replay Engine</strong> - Enables historical message retrieval and search</li></ul><h2>3. Message Format</h2><p>Messages use a structured envelope with metadata, payload, and routing information. Supports text, structured data, and binary attachments.</p>',
+    tags: ['t1', 't5'], author: 'u1', collaborators: ['u3', 'u4'],
+    createdAt: '2026-04-01', updatedAt: '2026-04-07',
+    versions: [
+      { id: 'v1', label: 'Initial draft', author: 'u1', date: '2026-04-01', additions: 312, deletions: 0 },
+      { id: 'v2', label: 'Added message format spec', author: 'u3', date: '2026-04-05', additions: 156, deletions: 23 }
+    ],
+    comments: [
+      { id: 'c3', author: 'u3', text: 'We should add a section on message ordering guarantees.', date: '2026-04-06', resolved: false, replies: [] },
+      { id: 'c4', author: 'u5', text: 'How does this interact with the existing Slack integration?', date: '2026-04-07', resolved: false, replies: [
+        { id: 'c4r1', author: 'u1', text: 'Slack is a transport adapter. Messages from Slack channels bridge into HD channels.', date: '2026-04-07' }
+      ]}
+    ],
+    reviews: [
+      { reviewer: 'u2', status: 'pending', date: null, comment: null },
+      { reviewer: 'u4', status: 'changes', date: '2026-04-07', comment: 'Need more detail on replay semantics and retention policies.' }
+    ]
+  },
+  {
+    id: 'd3', title: 'TSC-2026-04: GraphQL Federation Strategy', type: 'tsc', status: 'review',
+    description: 'Decision record for adopting Apollo Federation v2 as the standard for service composition.',
+    content: '<h1>TSC-2026-04: GraphQL Federation Strategy</h1><h2>Status</h2><p><strong>Proposed</strong> - Under review by TSC</p><h2>Context</h2><p>As the platform grows, we need a consistent approach to composing GraphQL schemas across microservices. The current approach of manual schema stitching is error-prone and does not scale.</p><h2>Decision</h2><p>Adopt Apollo Federation v2 as the standard for GraphQL service composition. Each service owns its subgraph and extends shared types via federation directives.</p><h2>Options Considered</h2><h3>Option A: Apollo Federation v2</h3><p>Pros: Mature ecosystem, good tooling, declarative composition. Cons: Vendor dependency, learning curve.</p><h3>Option B: Schema Stitching</h3><p>Pros: No vendor dependency. Cons: Manual, error-prone, poor type safety.</p><h3>Option C: Single Monolithic Schema</h3><p>Pros: Simple. Cons: Does not scale, coupling.</p><h2>Consequences</h2><p>All new services must publish a federation-compatible subgraph. Existing services will be migrated incrementally.</p>',
+    tags: ['t1', 't5'], author: 'u2', collaborators: ['u1', 'u4'],
+    createdAt: '2026-04-03', updatedAt: '2026-04-07',
+    versions: [
+      { id: 'v1', label: 'Initial proposal', author: 'u2', date: '2026-04-03', additions: 198, deletions: 0 }
+    ],
+    comments: [
+      { id: 'c5', author: 'u1', text: 'Strong +1 for Federation v2. We already have the router running.', date: '2026-04-04', resolved: false, replies: [] }
+    ],
+    reviews: [
+      { reviewer: 'u1', status: 'approved', date: '2026-04-05', comment: 'Fully aligned. Let us move forward.' },
+      { reviewer: 'u4', status: 'pending', date: null, comment: null },
+      { reviewer: 'u5', status: 'pending', date: null, comment: null }
+    ]
+  },
+  {
+    id: 'd4', title: 'OAuth2 Token Exchange Flow', type: 'hld', status: 'approved',
+    description: 'Design for the token exchange mechanism between user tokens and service-scoped tokens for MCP tool access.',
+    content: '<h1>OAuth2 Token Exchange Flow</h1><h2>1. Overview</h2><p>The token exchange flow enables secure delegation of user credentials to agent-scoped tokens. This is critical for MCP tools that need to act on behalf of a user while maintaining least-privilege access.</p><h2>2. Flow</h2><p>1. User authenticates via Keycloak<br>2. BFF exchanges user token for agent-scoped token<br>3. Agent-scoped token is passed to executor<br>4. Executor uses token for MCP tool calls<br>5. Token is scoped to specific tools and tenant</p><h2>3. Security</h2><p>Agent tokens have reduced scope and short TTL. All token exchanges are logged for audit. RLS policies on the supergraph enforce tenant boundaries.</p>',
+    tags: ['t2', 't5'], author: 'u4', collaborators: ['u1', 'u2'],
+    createdAt: '2026-03-28', updatedAt: '2026-04-04',
+    versions: [
+      { id: 'v1', label: 'Initial design', author: 'u4', date: '2026-03-28', additions: 167, deletions: 0 },
+      { id: 'v2', label: 'Added audit logging', author: 'u1', date: '2026-04-02', additions: 45, deletions: 8 }
+    ],
+    comments: [],
+    reviews: [
+      { reviewer: 'u1', status: 'approved', date: '2026-04-03', comment: 'Clean design. Aligns with our RLS architecture.' },
+      { reviewer: 'u2', status: 'approved', date: '2026-04-04', comment: 'Approved.' }
+    ]
+  },
+  {
+    id: 'd5', title: 'Database Migration: Datasource v2', type: 'hld', status: 'draft',
+    description: 'Schema migration plan for datasource service v2 with multi-tenant partitioning and connection pooling.',
+    content: '<h1>Database Migration: Datasource v2</h1><h2>1. Summary</h2><p>Migrate the datasource service to v2 schema with improved multi-tenant partitioning, connection pooling, and query caching.</p><h2>2. Schema Changes</h2><p>New tables: datasource_pool, query_cache, tenant_partition. Modified: datasource (add pool_id, partition_key columns).</p><h2>3. Data Migration</h2><p>Backfill partition_key from tenant_id. Initialize pool configurations from existing connection strings.</p><h2>4. Rollback Plan</h2><p>Flyway undo migrations provided. Feature flag controls v2 code paths.</p>',
+    tags: ['t4', 't7'], author: 'u3', collaborators: ['u1'],
+    createdAt: '2026-04-06', updatedAt: '2026-04-07',
+    versions: [
+      { id: 'v1', label: 'Draft', author: 'u3', date: '2026-04-06', additions: 134, deletions: 0 }
+    ],
+    comments: [
+      { id: 'c6', author: 'u1', text: 'Let us make sure Flyway handles this on startup per our convention.', date: '2026-04-07', resolved: false, replies: [] }
+    ],
+    reviews: []
+  },
+  {
+    id: 'd6', title: 'TSC-2026-03: Container Registry Strategy', type: 'tsc', status: 'approved',
+    description: 'Decision to use a lightweight registry:2 instance for agent app builds instead of GHCR for internal images.',
+    content: '<h1>TSC-2026-03: Container Registry Strategy</h1><h2>Status</h2><p><strong>Accepted</strong></p><h2>Context</h2><p>Agent apps need fast image builds and pulls within the cluster. GHCR adds latency and requires external network access from build nodes.</p><h2>Decision</h2><p>Deploy a lightweight Docker registry:2 at docker-registry:5000 for internal agent app images. GHCR remains for public/shared images.</p><h2>Consequences</h2><p>Build times reduced significantly. No external dependency for agent app deployments. Images are ephemeral and rebuilt from source.</p>',
+    tags: ['t6', 't1'], author: 'u1', collaborators: ['u2'],
+    createdAt: '2026-03-18', updatedAt: '2026-03-22',
+    versions: [
+      { id: 'v1', label: 'Proposal', author: 'u1', date: '2026-03-18', additions: 98, deletions: 0 },
+      { id: 'v2', label: 'Accepted', author: 'u1', date: '2026-03-22', additions: 12, deletions: 5 }
+    ],
+    comments: [],
+    reviews: [
+      { reviewer: 'u2', status: 'approved', date: '2026-03-21', comment: 'Makes sense for our use case.' },
+      { reviewer: 'u4', status: 'approved', date: '2026-03-22', comment: 'Agreed.' }
+    ]
+  },
+  {
+    id: 'd7', title: 'Search Pipeline Architecture', type: 'hld', status: 'review',
+    description: 'Design for the full-text search pipeline using Elasticsearch with tenant-scoped indices and real-time indexing.',
+    content: '<h1>Search Pipeline Architecture</h1><h2>1. Overview</h2><p>The search pipeline provides full-text search across all platform entities with tenant isolation, faceted filtering, and real-time index updates.</p><h2>2. Components</h2><ul><li><strong>Indexer</strong> - Listens to domain events and updates search indices</li><li><strong>Query Service</strong> - Handles search requests with tenant-scoped queries</li><li><strong>Index Manager</strong> - Manages index lifecycle, mappings, and aliases</li></ul><h2>3. Tenant Isolation</h2><p>Each tenant gets a dedicated index alias. All queries are filtered by tenant_id. Index-level security prevents cross-tenant access.</p>',
+    tags: ['t1', 't3'], author: 'u4', collaborators: ['u1', 'u3'],
+    createdAt: '2026-04-02', updatedAt: '2026-04-08',
+    versions: [
+      { id: 'v1', label: 'Initial design', author: 'u4', date: '2026-04-02', additions: 210, deletions: 0 },
+      { id: 'v2', label: 'Added tenant isolation', author: 'u1', date: '2026-04-07', additions: 78, deletions: 15 }
+    ],
+    comments: [
+      { id: 'c7', author: 'u2', text: 'Should we include a relevance scoring customization section?', date: '2026-04-08', resolved: false, replies: [] }
+    ],
+    reviews: [
+      { reviewer: 'u2', status: 'pending', date: null, comment: null },
+      { reviewer: 'u5', status: 'approved', date: '2026-04-08', comment: 'Index strategy looks correct.' }
+    ]
+  },
+  {
+    id: 'd8', title: 'MCP Gateway Registry Design', type: 'hld', status: 'draft',
+    description: 'Design for the MCP Gateway Registry that manages tool discovery, routing, and version resolution.',
+    content: '<h1>MCP Gateway Registry Design</h1><h2>1. Overview</h2><p>The MCP Gateway Registry is a central catalog of all available MCP tools, their capabilities, versions, and access policies. It enables dynamic tool discovery and intelligent routing.</p><h2>2. Registry Model</h2><p>Each tool registration includes: name, version, schema (JSON Schema), transport config, auth requirements, and tenant visibility.</p><h2>3. Discovery API</h2><p>Agents query the registry to discover available tools matching their needs. Results are filtered by tenant permissions and tool capabilities.</p>',
+    tags: ['t1', 't5', 't6'], author: 'u1', collaborators: ['u2', 'u3', 'u4'],
+    createdAt: '2026-04-07', updatedAt: '2026-04-08',
+    versions: [
+      { id: 'v1', label: 'Initial draft', author: 'u1', date: '2026-04-07', additions: 156, deletions: 0 }
+    ],
+    comments: [],
+    reviews: []
+  }
+];
+
+const defaultSchemas = [
+  {
+    id: 'schema1',
+    name: 'HLD Review App Schema',
+    schema: `erDiagram
+    DOCUMENTS {
+        uuid id PK
+        varchar title
+        text content
+        varchar type
+        varchar status
+        uuid author_id FK
+        uuid template_id FK
+        jsonb metadata
+        timestamp created_at
+        timestamp updated_at
+    }
+    DOCUMENT_VERSIONS {
+        uuid id PK
+        uuid document_id FK
+        int version_number
+        text content
+        varchar label
+        uuid author_id FK
+        int additions
+        int deletions
+        timestamp created_at
+    }
+    TEMPLATES {
+        uuid id PK
+        varchar name
+        varchar type
+        text description
+        text content
+        int used_count
+        uuid created_by FK
+        timestamp created_at
+    }
+    COMMENTS {
+        uuid id PK
+        uuid document_id FK
+        uuid parent_id FK
+        uuid author_id FK
+        text body
+        boolean resolved
+        timestamp created_at
+    }
+    REVIEWS {
+        uuid id PK
+        uuid document_id FK
+        uuid reviewer_id FK
+        varchar status
+        text comment
+        timestamp reviewed_at
+    }
+    USERS {
+        uuid id PK
+        varchar name
+        varchar email
+        varchar role
+        varchar avatar_color
+        timestamp created_at
+    }
+    TAGS {
+        uuid id PK
+        varchar name
+        varchar color
+    }
+    DOCUMENT_TAGS {
+        uuid document_id FK
+        uuid tag_id FK
+    }
+    DB_SCHEMAS {
+        uuid id PK
+        varchar name
+        text definition
+        uuid document_id FK
+        timestamp created_at
+    }
+
+    USERS ||--o{ DOCUMENTS : authors
+    DOCUMENTS ||--o{ DOCUMENT_VERSIONS : has
+    TEMPLATES ||--o{ DOCUMENTS : creates
+    DOCUMENTS ||--o{ COMMENTS : has
+    COMMENTS ||--o{ COMMENTS : replies
+    USERS ||--o{ COMMENTS : writes
+    DOCUMENTS ||--o{ REVIEWS : has
+    USERS ||--o{ REVIEWS : reviews
+    DOCUMENTS ||--o{ DOCUMENT_TAGS : has
+    TAGS ||--o{ DOCUMENT_TAGS : tagged
+    DOCUMENTS ||--o{ DB_SCHEMAS : contains`
+  },
+  {
+    id: 'schema2',
+    name: 'Agent Platform Schema',
+    schema: `erDiagram
+    AGENTS {
+        uuid id PK
+        varchar name
+        varchar status
+        uuid tenant_id FK
+        jsonb capabilities
+        timestamp created_at
+    }
+    EXECUTIONS {
+        uuid id PK
+        uuid agent_id FK
+        varchar status
+        jsonb input
+        jsonb output
+        timestamp started_at
+        timestamp completed_at
+    }
+    TASKS {
+        uuid id PK
+        uuid execution_id FK
+        varchar type
+        varchar status
+        jsonb payload
+        timestamp created_at
+    }
+    AUDIT_LOG {
+        uuid id PK
+        uuid agent_id FK
+        varchar action
+        jsonb details
+        timestamp created_at
+    }
+    TENANTS {
+        uuid id PK
+        varchar name
+        varchar plan
+        timestamp created_at
+    }
+
+    TENANTS ||--o{ AGENTS : owns
+    AGENTS ||--o{ EXECUTIONS : runs
+    EXECUTIONS ||--o{ TASKS : contains
+    AGENTS ||--o{ AUDIT_LOG : logged`
+  }
+];
+
+// ============================================================
+// STATE MANAGEMENT
+// ============================================================
+class Store {
+  constructor() {
+    this.data = this.load();
+  }
+
+  load() {
+    try {
+      const saved = localStorage.getItem('hld-tsc-store');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Migration: ensure all fields exist
+        if (!parsed.schemas) parsed.schemas = defaultSchemas;
+        return parsed;
+      }
+    } catch(e) {}
+    return {
+      users: defaultUsers,
+      tags: defaultTags,
+      templates: defaultTemplates,
+      documents: defaultDocuments,
+      schemas: defaultSchemas,
+      currentUser: 'u1'
+    };
+  }
+
+  save() {
+    try { localStorage.setItem('hld-tsc-store', JSON.stringify(this.data)); } catch(e) {}
+  }
+
+  getUser(id) { return this.data.users.find(u => u.id === id) || this.data.users[0]; }
+  getTag(id) { return this.data.tags.find(t => t.id === id); }
+  getCurrentUser() { return this.getUser(this.data.currentUser); }
+  getDocuments() { return this.data.documents; }
+  getDocument(id) { return this.data.documents.find(d => d.id === id); }
+  getTemplates() { return this.data.templates; }
+  getTemplate(id) { return this.data.templates.find(t => t.id === id); }
+
+  addDocument(doc) {
+    this.data.documents.unshift(doc);
+    this.save();
+  }
+
+  updateDocument(id, updates) {
+    const idx = this.data.documents.findIndex(d => d.id === id);
+    if (idx >= 0) {
+      Object.assign(this.data.documents[idx], updates);
+      this.save();
+    }
+  }
+
+  deleteDocument(id) {
+    this.data.documents = this.data.documents.filter(d => d.id !== id);
+    this.save();
+  }
+
+  addComment(docId, comment) {
+    const doc = this.getDocument(docId);
+    if (doc) {
+      doc.comments.push(comment);
+      this.save();
+    }
+  }
+
+  addReply(docId, commentId, reply) {
+    const doc = this.getDocument(docId);
+    if (doc) {
+      const comment = doc.comments.find(c => c.id === commentId);
+      if (comment) {
+        comment.replies.push(reply);
+        this.save();
+      }
+    }
+  }
+
+  toggleResolve(docId, commentId) {
+    const doc = this.getDocument(docId);
+    if (doc) {
+      const comment = doc.comments.find(c => c.id === commentId);
+      if (comment) {
+        comment.resolved = !comment.resolved;
+        this.save();
+      }
+    }
+  }
+
+  addReview(docId, review) {
+    const doc = this.getDocument(docId);
+    if (doc) {
+      const existing = doc.reviews.findIndex(r => r.reviewer === review.reviewer);
+      if (existing >= 0) {
+        doc.reviews[existing] = review;
+      } else {
+        doc.reviews.push(review);
+      }
+      // Auto-advance status
+      const allApproved = doc.reviews.length >= 2 && doc.reviews.every(r => r.status === 'approved');
+      if (allApproved) doc.status = 'approved';
+      else if (doc.reviews.some(r => r.status !== 'pending')) doc.status = 'review';
+      this.save();
+    }
+  }
+
+  addVersion(docId, version) {
+    const doc = this.getDocument(docId);
+    if (doc) {
+      doc.versions.push(version);
+      this.save();
+    }
+  }
+
+  generateId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+}
+
+const store = new Store();
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let currentPage = 'dashboard';
+let currentDocId = null;
+let editorSidebarTab = 'comments';
+
+function navigate(page, docId) {
+  currentPage = page;
+  currentDocId = docId || null;
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+
+  // Close mobile sidebar
+  closeSidebar();
+
+  renderPage();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('show');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function renderPage() {
+  const content = document.getElementById('content');
+  const title = document.getElementById('pageTitle');
+  const actions = document.getElementById('topbarActions');
+
+  // Update counts
+  document.getElementById('docCount').textContent = store.getDocuments().length;
+  const pendingReviews = store.getDocuments().filter(d => d.status === 'review').length;
+  document.getElementById('reviewCount').textContent = pendingReviews;
+
+  switch(currentPage) {
+    case 'dashboard': renderDashboard(content, title, actions); break;
+    case 'documents': renderDocuments(content, title, actions); break;
+    case 'editor': renderEditor(content, title, actions); break;
+    case 'templates': renderTemplates(content, title, actions); break;
+    case 'reviews': renderReviews(content, title, actions); break;
+    case 'visualizer': renderVisualizer(content, title, actions); break;
+    case 'features': renderFeatures(content, title, actions); break;
+    default: renderDashboard(content, title, actions);
+  }
+}
+
+// ---- DASHBOARD ----
+function renderDashboard(content, title, actions) {
+  title.textContent = 'Dashboard';
+  actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showNewDocModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Doc
+  </button>`;
+
+  const docs = store.getDocuments();
+  const approved = docs.filter(d => d.status === 'approved').length;
+  const inReview = docs.filter(d => d.status === 'review').length;
+  const drafts = docs.filter(d => d.status === 'draft').length;
+  const totalComments = docs.reduce((sum, d) => sum + d.comments.length, 0);
+
+  const recentDocs = [...docs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
+
+  const activities = [
+    { user: 'u2', text: '<strong>Sarah Chen</strong> approved <strong>NES Service Project Template</strong>', time: '1 hour ago' },
+    { user: 'u4', text: '<strong>Priya Sharma</strong> requested changes on <strong>NES Service Project Template</strong>', time: '3 hours ago' },
+    { user: 'u2', text: '<strong>Sarah Chen</strong> approved <strong>Agent Executor Platform HLD</strong>', time: '5 hours ago' },
+    { user: 'u4', text: '<strong>Priya Sharma</strong> requested changes on <strong>Channel Messaging System</strong>', time: '8 hours ago' },
+    { user: 'u1', text: '<strong>Ryan Murphy</strong> created <strong>MCP Gateway Registry Design</strong>', time: '1 day ago' },
+    { user: 'u5', text: '<strong>Alex Kim</strong> commented on <strong>Search Pipeline Architecture</strong>', time: '1 day ago' },
+    { user: 'u3', text: '<strong>Jake Torres</strong> submitted <strong>Database Migration: Datasource v2</strong> for review', time: '2 days ago' },
+  ];
+
+  content.innerHTML = `
+    <div class="dashboard-grid">
+      <div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-value" style="color:var(--accent)">${docs.length}</div>
+            <div class="stat-label">Total Docs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color:var(--success)">${approved}</div>
+            <div class="stat-label">Approved</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color:var(--warning)">${inReview}</div>
+            <div class="stat-label">In Review</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color:var(--info)">${totalComments}</div>
+            <div class="stat-label">Comments</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <div class="section-header">
+            <h3>Recent Documents</h3>
+            <button class="btn btn-ghost btn-sm" onclick="navigate('documents')">View All</button>
+          </div>
+          <div class="recent-docs">
+            ${recentDocs.map(d => {
+              const author = store.getUser(d.author);
+              return `<div class="doc-row" onclick="navigate('editor','${d.id}')">
+                <div class="doc-icon ${d.type}">
+                  ${d.type === 'hld' ?
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
+                  }
+                </div>
+                <div class="doc-row-info">
+                  <div class="doc-name">${d.title}</div>
+                  <div class="doc-meta">${author.name} &middot; Updated ${formatDate(d.updatedAt)}</div>
+                </div>
+                <span class="badge-status badge-${d.status}">${d.status}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-header">
+          <h3>Activity</h3>
+        </div>
+        <div class="activity-feed">
+          ${activities.map(a => {
+            const user = store.getUser(a.user);
+            return `<div class="activity-item">
+              <div class="activity-avatar" style="background:${user.color}">${user.initials}</div>
+              <div class="activity-content">
+                <div class="activity-text">${a.text}</div>
+                <div class="activity-time">${a.time}</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ---- DOCUMENTS ----
+let docFilter = 'all';
+let docSearch = '';
+
+function renderDocuments(content, title, actions) {
+  title.textContent = 'Documents';
+  actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showNewDocModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New
+  </button>`;
+
+  let docs = store.getDocuments();
+
+  if (docFilter !== 'all') {
+    if (['draft','review','approved','archived'].includes(docFilter)) {
+      docs = docs.filter(d => d.status === docFilter);
+    } else if (docFilter === 'hld' || docFilter === 'tsc') {
+      docs = docs.filter(d => d.type === docFilter);
+    }
+  }
+
+  if (docSearch) {
+    const q = docSearch.toLowerCase();
+    docs = docs.filter(d => d.title.toLowerCase().includes(q) || d.description.toLowerCase().includes(q));
+  }
+
+  content.innerHTML = `
+    <div class="search-box" style="margin-bottom:12px;max-width:100%">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search documents..." value="${docSearch}" oninput="docSearch=this.value;renderPage()">
+    </div>
+    <div class="doc-filters">
+      ${['all','draft','review','approved','hld','tsc'].map(f =>
+        `<div class="filter-chip ${docFilter===f?'active':''}" onclick="docFilter='${f}';renderPage()">${f==='all'?'All':f==='hld'?'HLD':f==='tsc'?'TSC':f.charAt(0).toUpperCase()+f.slice(1)}</div>`
+      ).join('')}
+    </div>
+    <div class="doc-list">
+      ${docs.length === 0 ? `<div class="empty-state"><h3>No documents found</h3><p>Try adjusting your filters or create a new document.</p></div>` :
+        docs.map(d => {
+          const author = store.getUser(d.author);
+          const tags = d.tags.map(tid => store.getTag(tid)).filter(Boolean);
+          return `<div class="card card-clickable doc-card" onclick="navigate('editor','${d.id}')">
+            <div class="doc-icon ${d.type}" style="align-self:flex-start">
+              ${d.type === 'hld' ?
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
+              }
+            </div>
+            <div class="doc-card-body">
+              <div class="doc-card-title">${d.title}</div>
+              <div class="doc-card-desc">${d.description}</div>
+              <div class="doc-card-footer">
+                <span class="badge-status badge-${d.status}">${d.status}</span>
+                ${tags.map(t => `<span class="tag" style="background:${t.color}20;color:${t.color}">${t.name}</span>`).join('')}
+                <span class="meta">${author.name} &middot; ${formatDate(d.updatedAt)}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+      }
+    </div>
+  `;
+}
+
+// ---- EDITOR ----
+function renderEditor(content, title, actions) {
+  const doc = store.getDocument(currentDocId);
+  if (!doc) { navigate('documents'); return; }
+
+  title.textContent = '';
+  actions.innerHTML = `
+    <span class="badge-status badge-${doc.status}" style="margin-right:4px">${doc.status}</span>
+    <button class="btn-icon" onclick="toggleEditorSidebar()" title="Toggle sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="navigate('documents')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Back
+    </button>
+  `;
+
+  const comments = doc.comments || [];
+  const versions = doc.versions || [];
+  const reviews = doc.reviews || [];
+
+  content.innerHTML = `
+    <div class="editor-layout">
+      <div class="editor-main">
+        <div class="editor-toolbar">
+          <button class="btn-icon" onclick="execCmd('bold')" title="Bold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
+          <button class="btn-icon" onclick="execCmd('italic')" title="Italic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+          <button class="btn-icon" onclick="execCmd('underline')" title="Underline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
+          <div class="divider"></div>
+          <button class="btn-icon" onclick="execCmd('formatBlock','<h1>')" title="Heading 1" style="font-weight:700;font-size:14px">H1</button>
+          <button class="btn-icon" onclick="execCmd('formatBlock','<h2>')" title="Heading 2" style="font-weight:700;font-size:13px">H2</button>
+          <button class="btn-icon" onclick="execCmd('formatBlock','<h3>')" title="Heading 3" style="font-weight:700;font-size:12px">H3</button>
+          <div class="divider"></div>
+          <button class="btn-icon" onclick="execCmd('insertUnorderedList')" title="Bullet List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+          <button class="btn-icon" onclick="execCmd('insertOrderedList')" title="Ordered List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></button>
+          <button class="btn-icon" onclick="execCmd('formatBlock','<blockquote>')" title="Quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg></button>
+          <div class="divider"></div>
+          <button class="btn btn-sm btn-secondary" onclick="saveDocument()" style="margin-left:auto">Save</button>
+          ${doc.status === 'draft' ? `<button class="btn btn-sm btn-primary" onclick="submitForReview('${doc.id}')">Submit for Review</button>` : ''}
+          ${doc.status === 'review' ? `<button class="btn btn-sm btn-success" onclick="approveDocument('${doc.id}')">Approve</button>` : ''}
+        </div>
+        <input class="editor-title-input" id="editorTitle" value="${escapeHtml(doc.title)}" placeholder="Document title..." onchange="updateDocTitle()">
+        <div class="editor-area" id="editorArea" contenteditable="true" oninput="autoSaveDraft()">${doc.content}</div>
+      </div>
+      <div class="editor-sidebar" id="editorSidebar">
+        <div class="editor-sidebar-tabs">
+          <div class="editor-sidebar-tab ${editorSidebarTab==='comments'?'active':''}" onclick="editorSidebarTab='comments';renderEditorSidebar()">Comments (${comments.length})</div>
+          <div class="editor-sidebar-tab ${editorSidebarTab==='history'?'active':''}" onclick="editorSidebarTab='history';renderEditorSidebar()">History (${versions.length})</div>
+          <div class="editor-sidebar-tab ${editorSidebarTab==='review'?'active':''}" onclick="editorSidebarTab='review';renderEditorSidebar()">Review (${reviews.length})</div>
+        </div>
+        <div class="editor-sidebar-content" id="editorSidebarContent"></div>
+      </div>
+    </div>
+  `;
+
+  renderEditorSidebar();
+}
+
+function renderEditorSidebar() {
+  const doc = store.getDocument(currentDocId);
+  if (!doc) return;
+  const container = document.getElementById('editorSidebarContent');
+  if (!container) return;
+
+  if (editorSidebarTab === 'comments') {
+    const comments = doc.comments || [];
+    container.innerHTML = `
+      ${comments.map(c => {
+        const author = store.getUser(c.author);
+        return `<div class="comment-thread">
+          <div class="comment ${c.resolved?'resolved':''}">
+            <div class="comment-header">
+              <div class="comment-avatar" style="background:${author.color}">${author.initials}</div>
+              <span class="comment-author">${author.name}</span>
+              <span class="comment-time">${formatDate(c.date)}</span>
+            </div>
+            <div class="comment-body">${escapeHtml(c.text)}</div>
+            <div class="comment-actions">
+              <button class="comment-action" onclick="toggleResolveComment('${doc.id}','${c.id}')">${c.resolved?'Reopen':'Resolve'}</button>
+              <button class="comment-action" onclick="showReplyInput('${c.id}')">Reply</button>
+            </div>
+          </div>
+          ${(c.replies||[]).map(r => {
+            const rAuthor = store.getUser(r.author);
+            return `<div class="comment comment-reply">
+              <div class="comment-header">
+                <div class="comment-avatar" style="background:${rAuthor.color}">${rAuthor.initials}</div>
+                <span class="comment-author">${rAuthor.name}</span>
+                <span class="comment-time">${formatDate(r.date)}</span>
+              </div>
+              <div class="comment-body">${escapeHtml(r.text)}</div>
+            </div>`;
+          }).join('')}
+          <div id="reply-${c.id}" style="display:none;margin-left:16px;margin-top:6px">
+            <textarea id="reply-text-${c.id}" placeholder="Write a reply..." rows="2" style="width:100%;font-size:12px"></textarea>
+            <button class="btn btn-primary btn-sm" onclick="addReply('${doc.id}','${c.id}')" style="margin-top:4px">Reply</button>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="comment-input-area" style="margin-top:12px">
+        <textarea id="newCommentText" placeholder="Add a comment..." rows="3"></textarea>
+        <button class="btn btn-primary btn-sm" onclick="addComment('${doc.id}')" style="margin-top:4px">Comment</button>
+      </div>
+    `;
+  } else if (editorSidebarTab === 'history') {
+    const versions = doc.versions || [];
+    container.innerHTML = `
+      <div class="version-list">
+        ${versions.slice().reverse().map(v => {
+          const author = store.getUser(v.author);
+          return `<div class="version-item">
+            <div class="version-label">${escapeHtml(v.label)}</div>
+            <div class="version-meta">${author.name} &middot; ${formatDate(v.date)}</div>
+            <div class="version-diff">
+              <span class="diff-add">+${v.additions}</span> &nbsp;
+              <span class="diff-del">-${v.deletions}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  } else if (editorSidebarTab === 'review') {
+    const reviews = doc.reviews || [];
+    container.innerHTML = `
+      <div class="review-info-section">
+        <h4>Status</h4>
+        <span class="badge-status badge-${doc.status}" style="font-size:13px">${doc.status}</span>
+      </div>
+      <div class="review-info-section">
+        <h4>Reviewers</h4>
+        ${reviews.map(r => {
+          const reviewer = store.getUser(r.reviewer);
+          return `<div class="reviewer-item">
+            <div class="reviewer-avatar" style="background:${reviewer.color}">${reviewer.initials}</div>
+            <span class="reviewer-name">${reviewer.name}</span>
+            <span class="reviewer-status ${r.status}">${r.status === 'approved' ? 'Approved' : r.status === 'changes' ? 'Changes' : 'Pending'}</span>
+          </div>
+          ${r.comment ? `<div style="font-size:11px;color:var(--text-muted);margin-left:32px;margin-bottom:6px">${escapeHtml(r.comment)}</div>` : ''}`;
+        }).join('')}
+        ${reviews.length === 0 ? '<div style="font-size:12px;color:var(--text-muted)">No reviewers assigned yet.</div>' : ''}
+      </div>
+      <div class="review-info-section">
+        <h4>Document Info</h4>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:2">
+          <div><strong>Type:</strong> ${doc.type.toUpperCase()}</div>
+          <div><strong>Author:</strong> ${store.getUser(doc.author).name}</div>
+          <div><strong>Created:</strong> ${formatDate(doc.createdAt)}</div>
+          <div><strong>Updated:</strong> ${formatDate(doc.updatedAt)}</div>
+          <div><strong>Versions:</strong> ${(doc.versions||[]).length}</div>
+          <div><strong>Tags:</strong> ${doc.tags.map(tid => {const t=store.getTag(tid);return t?t.name:''}).filter(Boolean).join(', ') || 'None'}</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function toggleEditorSidebar() {
+  const sidebar = document.getElementById('editorSidebar');
+  if (sidebar) sidebar.classList.toggle('mobile-open');
+}
+
+function execCmd(cmd, val) {
+  document.execCommand(cmd, false, val || null);
+  document.getElementById('editorArea').focus();
+}
+
+function updateDocTitle() {
+  const titleInput = document.getElementById('editorTitle');
+  if (titleInput && currentDocId) {
+    store.updateDocument(currentDocId, { title: titleInput.value, updatedAt: today() });
+  }
+}
+
+let autoSaveTimer = null;
+function autoSaveDraft() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    saveDocument(true);
+  }, 2000);
+}
+
+function saveDocument(silent) {
+  const area = document.getElementById('editorArea');
+  const titleInput = document.getElementById('editorTitle');
+  if (!area || !currentDocId) return;
+  store.updateDocument(currentDocId, {
+    content: area.innerHTML,
+    title: titleInput ? titleInput.value : undefined,
+    updatedAt: today()
+  });
+  if (!silent) showToast('Document saved', 'success');
+}
+
+function submitForReview(docId) {
+  store.updateDocument(docId, { status: 'review', updatedAt: today() });
+  store.addReview(docId, { reviewer: 'u2', status: 'pending', date: null, comment: null });
+  store.addReview(docId, { reviewer: 'u4', status: 'pending', date: null, comment: null });
+  showToast('Submitted for review', 'success');
+  renderPage();
+}
+
+function approveDocument(docId) {
+  const user = store.getCurrentUser();
+  store.addReview(docId, { reviewer: user.id, status: 'approved', date: today(), comment: 'Approved.' });
+  showToast('Review submitted', 'success');
+  renderPage();
+}
+
+function addComment(docId) {
+  const textarea = document.getElementById('newCommentText');
+  if (!textarea || !textarea.value.trim()) return;
+  const user = store.getCurrentUser();
+  store.addComment(docId, {
+    id: store.generateId(),
+    author: user.id,
+    text: textarea.value.trim(),
+    date: today(),
+    resolved: false,
+    replies: []
+  });
+  renderEditorSidebar();
+}
+
+function showReplyInput(commentId) {
+  const el = document.getElementById('reply-' + commentId);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function addReply(docId, commentId) {
+  const textarea = document.getElementById('reply-text-' + commentId);
+  if (!textarea || !textarea.value.trim()) return;
+  const user = store.getCurrentUser();
+  store.addReply(docId, commentId, {
+    id: store.generateId(),
+    author: user.id,
+    text: textarea.value.trim(),
+    date: today()
+  });
+  renderEditorSidebar();
+}
+
+function toggleResolveComment(docId, commentId) {
+  store.toggleResolve(docId, commentId);
+  renderEditorSidebar();
+}
+
+// ---- TEMPLATES ----
+function renderTemplates(content, title, actions) {
+  title.textContent = 'Templates';
+  actions.innerHTML = '';
+
+  const templates = store.getTemplates();
+
+  content.innerHTML = `
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Start a new document from a template or browse existing templates.</p>
+    <div class="template-grid">
+      ${templates.map(t => {
+        const creator = store.getUser(t.createdBy);
+        const isHld = t.type === 'hld';
+        return `<div class="card card-clickable template-card" onclick="createFromTemplate('${t.id}')">
+          <div class="template-card-icon" style="background:${isHld?'var(--accent-muted)':'var(--purple-bg)'}; color:${isHld?'var(--accent)':'var(--purple)'}">
+            ${isHld ?
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
+            }
+          </div>
+          <h4>${escapeHtml(t.name)}</h4>
+          <p>${escapeHtml(t.description)}</p>
+          <div class="template-meta">
+            <span>Used ${t.usedCount} times</span>
+            <span>By ${creator.name}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function createFromTemplate(templateId) {
+  const template = store.getTemplate(templateId);
+  if (!template) return;
+
+  const user = store.getCurrentUser();
+  const doc = {
+    id: store.generateId(),
+    title: template.name.replace('Template', '').trim() + ' - New',
+    type: template.type,
+    status: 'draft',
+    description: 'Created from template: ' + template.name,
+    content: template.content,
+    tags: [],
+    author: user.id,
+    collaborators: [],
+    createdAt: today(),
+    updatedAt: today(),
+    versions: [{ id: store.generateId(), label: 'Created from template', author: user.id, date: today(), additions: 100, deletions: 0 }],
+    comments: [],
+    reviews: []
+  };
+
+  store.addDocument(doc);
+  showToast('Document created from template', 'success');
+  navigate('editor', doc.id);
+}
+
+// ---- REVIEWS ----
+function renderReviews(content, title, actions) {
+  title.textContent = 'Reviews';
+  actions.innerHTML = '';
+
+  const docs = store.getDocuments();
+  const pending = docs.filter(d => d.status === 'review');
+  const approved = docs.filter(d => d.status === 'approved');
+
+  content.innerHTML = `
+    <div class="tabs">
+      <div class="tab active" onclick="switchReviewTab(this,'pending')">Pending (${pending.length})</div>
+      <div class="tab" onclick="switchReviewTab(this,'approved')">Approved (${approved.length})</div>
+    </div>
+    <div id="reviewContent">
+      <div class="review-list">
+        ${pending.length === 0 ? '<div class="empty-state"><h3>No pending reviews</h3><p>All documents have been reviewed.</p></div>' :
+          pending.map(d => renderReviewCard(d)).join('')
+        }
+      </div>
+    </div>
+  `;
+}
+
+function switchReviewTab(el, tab) {
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  const docs = store.getDocuments();
+  const list = tab === 'pending' ? docs.filter(d => d.status === 'review') : docs.filter(d => d.status === 'approved');
+
+  document.getElementById('reviewContent').innerHTML = `
+    <div class="review-list">
+      ${list.length === 0 ? `<div class="empty-state"><h3>No ${tab} reviews</h3></div>` :
+        list.map(d => renderReviewCard(d)).join('')
+      }
+    </div>
+  `;
+}
+
+function renderReviewCard(d) {
+  const author = store.getUser(d.author);
+  const reviewers = (d.reviews || []).map(r => {
+    const rev = store.getUser(r.reviewer);
+    return `<span class="reviewer-status ${r.status}" style="font-size:11px">${rev.initials}: ${r.status}</span>`;
+  }).join(' &middot; ');
+
+  return `<div class="card card-clickable review-card" onclick="navigate('editor','${d.id}')">
+    <div class="doc-icon ${d.type}" style="align-self:flex-start">
+      ${d.type === 'hld' ?
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
+      }
+    </div>
+    <div class="review-card-body">
+      <div class="review-card-title">${escapeHtml(d.title)}</div>
+      <div class="review-card-meta">
+        ${author.name} &middot; ${formatDate(d.updatedAt)} &middot; ${reviewers}
+      </div>
+    </div>
+    <span class="badge-status badge-${d.status}">${d.status}</span>
+  </div>`;
+}
+
+// ---- DB VISUALIZER ----
+let currentSchemaText = '';
+
+function renderVisualizer(content, title, actions) {
+  title.textContent = 'DB Visualizer';
+  actions.innerHTML = '';
+
+  const schemas = store.data.schemas || [];
+
+  content.innerHTML = `
+    <div class="visualizer-layout">
+      <div class="schema-examples">
+        <span style="font-size:12px;color:var(--text-muted);align-self:center">Load example:</span>
+        ${schemas.map(s => `<button class="btn btn-secondary btn-sm" onclick="loadSchema('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
+      </div>
+      <div class="schema-input-area">
+        <div class="schema-input-header">
+          <h4>Mermaid ER Diagram</h4>
+          <button class="btn btn-primary btn-sm" onclick="renderDiagram()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Render
+          </button>
+        </div>
+        <textarea class="schema-textarea" id="schemaInput" placeholder="Enter Mermaid ER diagram syntax...
+
+Example:
+erDiagram
+    USERS {
+        uuid id PK
+        varchar name
+    }
+    POSTS {
+        uuid id PK
+        uuid author_id FK
+        text content
+    }
+    USERS ||--o{ POSTS : writes">${currentSchemaText}</textarea>
+      </div>
+      <div class="diagram-output" id="diagramOutput">
+        <div style="color:var(--text-muted);font-size:13px">Enter a Mermaid ER diagram above and click Render</div>
+      </div>
+    </div>
+  `;
+
+  // Auto-render if there's content
+  if (currentSchemaText) {
+    setTimeout(() => renderDiagram(), 100);
+  }
+}
+
+function loadSchema(schemaId) {
+  const schema = (store.data.schemas || []).find(s => s.id === schemaId);
+  if (!schema) return;
+  currentSchemaText = schema.schema;
+  const input = document.getElementById('schemaInput');
+  if (input) input.value = currentSchemaText;
+  renderDiagram();
+}
+
+function renderDiagram() {
+  const input = document.getElementById('schemaInput');
+  const output = document.getElementById('diagramOutput');
+  if (!input || !output) return;
+
+  currentSchemaText = input.value;
+  if (!currentSchemaText.trim()) {
+    output.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Enter a Mermaid ER diagram above and click Render</div>';
+    return;
+  }
+
+  output.innerHTML = '<div class="mermaid">' + currentSchemaText + '</div>';
+
+  try {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4c7bf5',
+        primaryTextColor: '#e8ecf4',
+        primaryBorderColor: '#2d3548',
+        lineColor: '#5a6478',
+        secondaryColor: '#242b3d',
+        tertiaryColor: '#1e2538'
+      }
+    });
+    mermaid.run({ querySelector: '#diagramOutput .mermaid' });
+  } catch(e) {
+    output.innerHTML = `<div style="color:var(--danger);font-size:13px">Error rendering diagram: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+// ---- FEATURES ----
+function renderFeatures(content, title, actions) {
+  title.textContent = 'Features';
+  actions.innerHTML = '';
+
+  content.innerHTML = `
+    <div style="margin-bottom:20px">
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:4px">HLD & TSC Document Review</h2>
+      <p style="color:var(--text-secondary);font-size:13px">A collaborative platform for managing High-Level Design documents and Technical Steering Committee templates.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-group">
+        <h3 style="color:var(--accent)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Document Management
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Create, edit, and manage HLD documents with rich text editing</li>
+          <li class="done">Full document CRUD with auto-save and draft support</li>
+          <li class="done">Document types: HLD (High-Level Design) and TSC (Technical Steering Committee)</li>
+          <li class="done">Search and filter documents by status, type, and tags</li>
+          <li class="done">Tags and categories for organizing documents</li>
+          <li class="done">Document metadata tracking (author, dates, collaborators)</li>
+          <li class="planned">Export to PDF, Markdown, and HTML</li>
+          <li class="planned">Document locking for concurrent edit protection</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--purple)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          Template System
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Pre-built templates for HLD, TSC decisions, API specs, migrations, and more</li>
+          <li class="done">Create new documents from templates with one click</li>
+          <li class="done">Template usage tracking</li>
+          <li class="planned">Save any document as a template</li>
+          <li class="planned">Custom template creation and editing</li>
+          <li class="planned">Template versioning</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--success)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Commenting & Collaboration
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Threaded comments with replies</li>
+          <li class="done">Resolve and reopen comments</li>
+          <li class="done">User avatars and identity</li>
+          <li class="done">Activity feed showing recent actions</li>
+          <li class="planned">Inline comments anchored to specific text</li>
+          <li class="planned">@mentions and notifications</li>
+          <li class="planned">Real-time presence indicators (who is viewing)</li>
+          <li class="planned">Real-time collaborative editing</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--warning)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Review Workflow
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Document lifecycle: Draft &rarr; In Review &rarr; Approved &rarr; Archived</li>
+          <li class="done">Per-reviewer status tracking (pending, approved, changes requested)</li>
+          <li class="done">Review comments and feedback</li>
+          <li class="done">Auto-approve when all reviewers approve</li>
+          <li class="planned">Configurable approval rules (e.g., require 2 of 3)</li>
+          <li class="planned">Review deadline reminders</li>
+          <li class="planned">Email/Slack notifications for review requests</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--info)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Version History
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Full version history with labels and timestamps</li>
+          <li class="done">Addition/deletion tracking per version</li>
+          <li class="done">Author attribution for each version</li>
+          <li class="planned">Visual diff view between versions</li>
+          <li class="planned">Restore previous versions</li>
+          <li class="planned">Branch and merge document versions</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--orange)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-7.07-15.07l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+          Database Visualization
+        </h3>
+        <ul class="feature-list">
+          <li class="done">ER diagram rendering using Mermaid.js</li>
+          <li class="done">Pre-loaded example schemas</li>
+          <li class="done">Interactive editor with live rendering</li>
+          <li class="done">Dark-themed diagram output</li>
+          <li class="planned">Import from SQL DDL statements</li>
+          <li class="planned">Embed diagrams within documents</li>
+          <li class="planned">Export diagrams as SVG/PNG</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--danger)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Mobile-First Design
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Responsive layout optimized for phone, tablet, and desktop</li>
+          <li class="done">Collapsible sidebar navigation with slide-in animation</li>
+          <li class="done">Touch-friendly controls and tap targets</li>
+          <li class="done">Horizontal scrolling for overflow content</li>
+          <li class="done">Professional dark theme with CSS custom properties</li>
+          <li class="done">Offline draft support via LocalStorage</li>
+          <li class="planned">PWA support with offline access</li>
+          <li class="planned">Pull-to-refresh and swipe gestures</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--text-secondary)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          Platform & Infrastructure
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Single-file HTML deployment on nginx:alpine</li>
+          <li class="done">Tenant-private visibility on HeroDevs platform</li>
+          <li class="done">Auto-provisioned database via platform datasource API</li>
+          <li class="done">Health check endpoint for K8s readiness probes</li>
+          <li class="planned">Backend API integration for persistent storage</li>
+          <li class="planned">Authentication via platform SSO</li>
+          <li class="planned">Webhook integration for CI/CD events</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+      <h3 style="font-size:15px;margin-bottom:8px">Database Schema</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">The application is designed with the following database schema. Visit the DB Visualizer to see the full ER diagram.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+        ${['documents','document_versions','templates','comments','reviews','users','tags','document_tags','db_schemas'].map(t =>
+          `<div style="padding:8px 12px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:12px;font-family:var(--font-mono);color:var(--accent)">${t}</div>`
+        ).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ---- NEW DOCUMENT MODAL ----
+function showNewDocModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'newDocModal';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>New Document</h3>
+        <button class="btn-icon" onclick="document.getElementById('newDocModal').remove()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="newDocTitle" placeholder="Enter document title...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="newDocType">
+              <option value="hld">HLD - High-Level Design</option>
+              <option value="tsc">TSC - Steering Committee</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="newDocDesc" rows="3" placeholder="Brief description of the document..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Or start from a template</label>
+          <select id="newDocTemplate">
+            <option value="">Blank document</option>
+            ${store.getTemplates().map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('newDocModal').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="createNewDoc()">Create</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.getElementById('newDocTitle').focus();
+}
+
+function createNewDoc() {
+  const title = document.getElementById('newDocTitle').value.trim();
+  const type = document.getElementById('newDocType').value;
+  const desc = document.getElementById('newDocDesc').value.trim();
+  const templateId = document.getElementById('newDocTemplate').value;
+
+  if (!title) { showToast('Please enter a title', 'error'); return; }
+
+  const user = store.getCurrentUser();
+  let content = '<h1>' + escapeHtml(title) + '</h1><p>Start writing here...</p>';
+
+  if (templateId) {
+    const tpl = store.getTemplate(templateId);
+    if (tpl) content = tpl.content;
+  }
+
+  const doc = {
+    id: store.generateId(),
+    title,
+    type,
+    status: 'draft',
+    description: desc || 'No description',
+    content,
+    tags: [],
+    author: user.id,
+    collaborators: [],
+    createdAt: today(),
+    updatedAt: today(),
+    versions: [{ id: store.generateId(), label: 'Initial draft', author: user.id, date: today(), additions: 50, deletions: 0 }],
+    comments: [],
+    reviews: []
+  };
+
+  store.addDocument(doc);
+  document.getElementById('newDocModal').remove();
+  showToast('Document created', 'success');
+  navigate('editor', doc.id);
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffDays = Math.floor(diffMs / (1000*60*60*24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return diffDays + 'd ago';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch(e) { return dateStr; }
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function showToast(message, type) {
+  const container = document.getElementById('toasts');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (type || 'info');
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#4c7bf5',
+      primaryTextColor: '#e8ecf4',
+      primaryBorderColor: '#2d3548',
+      lineColor: '#5a6478',
+      secondaryColor: '#242b3d',
+      tertiaryColor: '#1e2538'
+    }
+  });
+  renderPage();
+});
+</script>
+</body>
+</html>
