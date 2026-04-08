@@ -582,6 +582,7 @@ input:focus, textarea:focus, select:focus {
 .doc-icon svg { width: 18px; height: 18px; }
 .doc-icon.hld { background: var(--accent-muted); color: var(--accent); }
 .doc-icon.tsc { background: var(--purple-bg); color: var(--purple); }
+.doc-icon.db { background: var(--success-bg); color: var(--success); }
 .doc-row-info { flex: 1; min-width: 0; }
 .doc-row-info .doc-name {
   font-size: 13px;
@@ -744,6 +745,7 @@ input:focus, textarea:focus, select:focus {
 .editor-area h1 { font-size: 24px; margin: 16px 0 8px; }
 .editor-area h2 { font-size: 20px; margin: 14px 0 6px; }
 .editor-area h3 { font-size: 17px; margin: 12px 0 4px; }
+.editor-area h4 { font-size: 15px; margin: 10px 0 4px; font-weight: 600; }
 .editor-area p { margin-bottom: 8px; }
 .editor-area ul, .editor-area ol { margin: 8px 0 8px 20px; }
 .editor-area blockquote {
@@ -768,6 +770,26 @@ input:focus, textarea:focus, select:focus {
   overflow-x: auto;
 }
 .editor-area pre code { background: transparent; padding: 0; }
+.editor-area table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 13px;
+}
+.editor-area table th, .editor-area table td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.editor-area table th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+}
+.editor-area hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
 
 .editor-sidebar {
   width: 300px;
@@ -921,6 +943,35 @@ input:focus, textarea:focus, select:focus {
 .reviewer-status.pending { color: var(--warning); }
 .reviewer-status.changes { color: var(--orange); }
 
+/* Related documents */
+.related-docs {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+.related-docs h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.related-doc-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition);
+  font-size: 12px;
+  color: var(--text-link);
+}
+.related-doc-link:hover { background: var(--bg-hover); }
+.related-doc-link svg { width: 14px; height: 14px; flex-shrink: 0; }
+
 /* ============================================================
    PAGE: TEMPLATES
    ============================================================ */
@@ -1022,6 +1073,7 @@ input:focus, textarea:focus, select:focus {
   align-items: center;
   justify-content: center;
   overflow: auto;
+  position: relative;
 }
 .diagram-output .mermaid {
   width: 100%;
@@ -1032,6 +1084,93 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* Table comment badge */
+.table-comment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  position: absolute;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* Table comment panel */
+.table-comment-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 90vw;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  animation: slideInRight 0.2s ease;
+}
+@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.table-comment-panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.table-comment-panel-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-comment-panel-header h3 code {
+  background: var(--accent-muted);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.table-comment-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+.table-comment-panel-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.table-comment-panel-footer textarea {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.table-comment-panel-footer .footer-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.table-comment-panel-footer .footer-row input {
+  flex: 1;
+  font-size: 12px;
+}
+.table-comment-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 550;
 }
 
 /* ============================================================
@@ -1207,6 +1346,8 @@ input:focus, textarea:focus, select:focus {
   .toast { min-width: auto; }
 
   .modal { max-width: 100%; margin: 8px; border-radius: var(--radius); }
+
+  .table-comment-panel { width: 100%; max-width: 100%; }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -1255,7 +1396,7 @@ input:focus, textarea:focus, select:focus {
         <div class="nav-item" onclick="navigate('documents')" data-page="documents">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           Documents
-          <span class="badge" id="docCount">8</span>
+          <span class="badge" id="docCount">2</span>
         </div>
         <div class="nav-item" onclick="navigate('templates')" data-page="templates">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
@@ -1267,7 +1408,7 @@ input:focus, textarea:focus, select:focus {
         <div class="nav-item" onclick="navigate('reviews')" data-page="reviews">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           Reviews
-          <span class="badge" id="reviewCount">3</span>
+          <span class="badge" id="reviewCount">2</span>
         </div>
       </div>
       <div class="nav-section">
@@ -1316,10 +1457,6 @@ const COLORS = ['#4c7bf5','#a78bfa','#3dd68c','#f5a623','#f5564a','#4cc9f0','#fb
 
 const defaultUsers = [
   { id: 'u1', name: 'Ryan Murphy', initials: 'RM', color: '#4c7bf5', role: 'Admin' },
-  { id: 'u2', name: 'Sarah Chen', initials: 'SC', color: '#a78bfa', role: 'Architect' },
-  { id: 'u3', name: 'Jake Torres', initials: 'JT', color: '#3dd68c', role: 'Engineer' },
-  { id: 'u4', name: 'Priya Sharma', initials: 'PS', color: '#f5a623', role: 'Lead' },
-  { id: 'u5', name: 'Alex Kim', initials: 'AK', color: '#4cc9f0', role: 'Reviewer' },
 ];
 
 const defaultTags = [
@@ -1340,199 +1477,788 @@ const defaultTemplates = [
     usedCount: 14, createdBy: 'u1', createdAt: '2026-03-15'
   },
   {
-    id: 'tpl2', name: 'TSC Decision Record', type: 'tsc',
-    description: 'Template for TSC decisions including context, options considered, and resolution.',
-    content: '<h1>TSC Decision: [Title]</h1><h2>Status</h2><p>[Proposed | Accepted | Deprecated | Superseded]</p><h2>Context</h2><p>Describe the issue motivating this decision.</p><h2>Decision</h2><p>Describe the decision that was made.</p><h2>Options Considered</h2><h3>Option A</h3><p>Description, pros, and cons.</p><h3>Option B</h3><p>Description, pros, and cons.</p><h2>Consequences</h2><p>Describe the resulting context after applying the decision.</p>',
-    usedCount: 9, createdBy: 'u2', createdAt: '2026-03-20'
-  },
-  {
-    id: 'tpl3', name: 'API Design Spec', type: 'hld',
+    id: 'tpl2', name: 'API Design Spec', type: 'hld',
     description: 'API design specification with endpoints, request/response schemas, and auth requirements.',
     content: '<h1>API Design: [Service Name]</h1><h2>1. Base URL & Versioning</h2><p>Define the base URL pattern and versioning strategy.</p><h2>2. Authentication</h2><p>Describe auth mechanism (OAuth2, API key, JWT).</p><h2>3. Endpoints</h2><h3>GET /resource</h3><p>Description, query params, response schema.</p><h3>POST /resource</h3><p>Description, request body, response schema.</p><h2>4. Error Handling</h2><p>Standard error response format and codes.</p><h2>5. Rate Limiting</h2><p>Rate limit policies and headers.</p>',
-    usedCount: 7, createdBy: 'u4', createdAt: '2026-03-25'
+    usedCount: 7, createdBy: 'u1', createdAt: '2026-03-25'
   },
   {
-    id: 'tpl4', name: 'Database Migration Plan', type: 'hld',
+    id: 'tpl3', name: 'Database Migration Plan', type: 'hld',
     description: 'Schema migration plan with rollback strategy and data integrity checks.',
     content: '<h1>Migration Plan: [Migration Name]</h1><h2>1. Summary</h2><p>Brief overview of what changes and why.</p><h2>2. Schema Changes</h2><p>List all DDL changes (CREATE, ALTER, DROP).</p><h2>3. Data Migration</h2><p>Describe any data transformation or backfill required.</p><h2>4. Rollback Plan</h2><p>Steps to reverse the migration safely.</p><h2>5. Testing Checklist</h2><ul><li>Unit tests pass</li><li>Integration tests pass</li><li>Performance benchmarks met</li><li>Rollback tested</li></ul>',
-    usedCount: 5, createdBy: 'u3', createdAt: '2026-04-01'
-  },
-  {
-    id: 'tpl5', name: 'Security Review', type: 'tsc',
-    description: 'Security assessment template covering threat modeling, vulnerabilities, and mitigations.',
-    content: '<h1>Security Review: [Component]</h1><h2>1. Threat Model</h2><p>Identify assets, threat actors, and attack surfaces.</p><h2>2. Vulnerabilities Identified</h2><p>List discovered vulnerabilities with severity.</p><h2>3. Mitigations</h2><p>Proposed fixes and controls for each vulnerability.</p><h2>4. Compliance Checklist</h2><ul><li>OWASP Top 10 reviewed</li><li>Input validation verified</li><li>Auth/AuthZ tested</li><li>Secrets management confirmed</li></ul>',
-    usedCount: 3, createdBy: 'u5', createdAt: '2026-04-03'
-  },
-  {
-    id: 'tpl6', name: 'Infrastructure Design', type: 'hld',
-    description: 'Cloud infrastructure design template for Kubernetes deployments.',
-    content: '<h1>Infrastructure Design: [Service/Project]</h1><h2>1. Overview</h2><p>Cluster topology, namespaces, and resource allocation.</p><h2>2. Compute</h2><p>Pod specs, replicas, auto-scaling policies.</p><h2>3. Networking</h2><p>Ingress, service mesh, network policies.</p><h2>4. Storage</h2><p>PVCs, backup strategy, retention.</p><h2>5. Observability</h2><p>Logging, metrics, alerting, and tracing.</p><h2>6. Disaster Recovery</h2><p>Backup, restore, and failover procedures.</p>',
-    usedCount: 6, createdBy: 'u1', createdAt: '2026-04-05'
+    usedCount: 5, createdBy: 'u1', createdAt: '2026-04-01'
   }
 ];
 
+// --- API2 Proposal Document (PLAN.md) ---
+const api2ProposalContent = `<h1>api2 -- Workflow Registry API</h1>
+<h2>1. Project Overview</h2>
+<p>api2 is a new API service within the <code>nesify-ai-conductor-workflows</code> monorepo that provides a managed registry for Conductor workflow definitions. Its responsibilities:</p>
+<ul>
+<li><strong>Workflow registration with dedup</strong> -- Accept uploaded workflow definitions, check whether the same workflow (by name + version) already exists, and either ignore duplicates or publish new ones to Conductor.</li>
+<li><strong>Workflow listing</strong> -- Expose the current set of registered workflows from both the local Postgres registry and Conductor.</li>
+<li><strong>Workflow execution</strong> -- Provide an endpoint to start a registered workflow with user-supplied inputs.</li>
+<li><strong>Federated GraphQL subgraph</strong> -- Participate in a federated Apollo schema so other services and the portal can query workflow metadata alongside run data.</li>
+</ul>
+<p>api2 complements the existing <code>apps/api</code> (the run-management / nesify API) and sits alongside it in the control plane.</p>
+<hr>
+
+<h2>2. Architecture</h2>
+<pre><code>                          +-----------+
+                          |  Apollo   |
+                          |  Router   |
+                          +-----+-----+
+                                |
+                   +------------+------------+
+                   |                         |
+             +-----+-----+            +-----+-----+
+             |  apps/api  |            | apps/api2 |
+             | (runs/start)|           | (registry)|
+             +-----+-----+            +-----+-----+
+                   |                     |       |
+                   |              +------+    +--+--------+
+                   |              |Postgres|   | Conductor |
+                   |              |registry|   | metadata  |
+                   |              +--------+   | API       |
+                   |                           +-----------+
+                   +---------------------------+
+                        Conductor API</code></pre>
+
+<h3>Key integration points</h3>
+<table>
+<tr><th>Component</th><th>Role</th></tr>
+<tr><td><strong>PostgreSQL</strong></td><td>Local workflow registry (source of truth for what has been registered, dedup key, audit trail)</td></tr>
+<tr><td><strong>Conductor API</strong></td><td>Runtime target -- workflow/task definitions are published here via the metadata API</td></tr>
+<tr><td><strong>Apollo Federation</strong></td><td>api2 exposes a subgraph with Workflow entity types that can be composed with the router</td></tr>
+<tr><td><strong>apps/api</strong></td><td>Existing run API; api2 does NOT replace it. The two can coexist behind the same router</td></tr>
+</table>
+
+<h3>Runtime</h3>
+<ul>
+<li><strong>Framework</strong>: Hono (matches <code>apps/api</code>)</li>
+<li><strong>Language</strong>: TypeScript, executed natively on Node 25+ (no build step, <code>erasableSyntaxOnly</code>)</li>
+<li><strong>Database driver</strong>: <code>pg</code> via raw queries (lightweight, no ORM; optionally Knex for migrations)</li>
+<li><strong>Conductor SDK</strong>: <code>@io-orkes/conductor-javascript</code> (already in workspace dependencies)</li>
+<li><strong>Validation</strong>: Zod (already in workspace dependencies)</li>
+<li><strong>GraphQL</strong>: <code>@apollo/subgraph</code> + <code>graphql</code> + <code>@graphql-tools/merge</code></li>
+</ul>
+<hr>
+
+<h2>3. GraphQL Schema Design</h2>
+<h3>Schema file: <code>src/workflow/schema.graphql</code></h3>
+<pre><code>extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable"])
+
+type Workflow @key(fields: "name version") {
+  name: String!
+  version: Int!
+  description: String
+  inputParameters: [String!]!
+  status: WorkflowRegistrationStatus!
+  registeredAt: DateTime!
+  registeredBy: String
+  conductorSynced: Boolean!
+  conductorSyncedAt: DateTime
+}
+
+enum WorkflowRegistrationStatus {
+  ACTIVE
+  DEPRECATED
+  DRAFT
+}
+
+type WorkflowExecution {
+  workflowId: String!
+  name: String!
+  version: Int!
+  status: String!
+}
+
+type WorkflowRegistrationResult {
+  workflow: Workflow!
+  created: Boolean!
+  deduplicated: Boolean!
+}
+
+type Query {
+  workflows(status: WorkflowRegistrationStatus): [Workflow!]!
+  workflow(name: String!, version: Int!): Workflow
+  workflowByName(name: String!): Workflow
+}
+
+type Mutation {
+  registerWorkflow(input: RegisterWorkflowInput!): WorkflowRegistrationResult!
+  startWorkflow(input: StartWorkflowInput!): WorkflowExecution!
+  deprecateWorkflow(name: String!, version: Int!): Workflow!
+}
+
+input RegisterWorkflowInput {
+  definition: JSON!
+  description: String
+  registeredBy: String
+}
+
+input StartWorkflowInput {
+  name: String!
+  version: Int
+  input: JSON!
+  correlationId: String
+  taskToDomain: JSON
+}
+
+scalar DateTime
+scalar JSON</code></pre>
+
+<h3>REST endpoints (alongside GraphQL)</h3>
+<table>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+<tr><td>GET</td><td><code>/health</code></td><td>Health check</td></tr>
+<tr><td>GET</td><td><code>/v1/workflows</code></td><td>List registered workflows</td></tr>
+<tr><td>GET</td><td><code>/v1/workflows/:name</code></td><td>Get latest version of a workflow</td></tr>
+<tr><td>GET</td><td><code>/v1/workflows/:name/:version</code></td><td>Get specific workflow version</td></tr>
+<tr><td>POST</td><td><code>/v1/workflows</code></td><td>Register a workflow (dedup)</td></tr>
+<tr><td>POST</td><td><code>/v1/workflows/:name/start</code></td><td>Start a workflow</td></tr>
+<tr><td>POST</td><td><code>/v1/workflows/:name/:version/start</code></td><td>Start a specific workflow version</td></tr>
+</table>
+<hr>
+
+<h2>4. Database Schema</h2>
+<h3>Migration: <code>001_create_workflow_registry.sql</code></h3>
+<pre><code>CREATE TABLE IF NOT EXISTS workflow_registry (
+  id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name          TEXT        NOT NULL,
+  version       INT         NOT NULL,
+  description   TEXT,
+  status        TEXT        NOT NULL DEFAULT 'ACTIVE',
+  definition    JSONB       NOT NULL,
+  input_parameters TEXT[]   NOT NULL DEFAULT '{}',
+  conductor_synced    BOOLEAN   NOT NULL DEFAULT FALSE,
+  conductor_synced_at TIMESTAMPTZ,
+  registered_by TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_workflow_name_version UNIQUE (name, version)
+);</code></pre>
+
+<h3>Migration: <code>002_create_workflow_executions.sql</code></h3>
+<pre><code>CREATE TABLE IF NOT EXISTS workflow_execution_log (
+  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  workflow_name   TEXT        NOT NULL,
+  workflow_version INT        NOT NULL,
+  conductor_workflow_id TEXT  NOT NULL,
+  correlation_id  TEXT,
+  input_payload   JSONB       NOT NULL DEFAULT '{}',
+  started_by      TEXT,
+  started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT fk_workflow_execution_registry
+    FOREIGN KEY (workflow_name, workflow_version)
+    REFERENCES workflow_registry (name, version)
+    ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED
+);</code></pre>
+<hr>
+
+<h2>5. Conductor Integration</h2>
+<h3>5.1 Registering workflow definitions</h3>
+<p>Uses the Conductor metadata API:</p>
+<pre><code>PUT /api/metadata/workflow   (upsert workflow definitions)
+POST /api/metadata/taskdefs  (register new task definitions)
+PUT /api/metadata/taskdefs   (update existing task definitions)</code></pre>
+
+<h3>5.2 Listing workflows from Conductor</h3>
+<pre><code>GET /api/metadata/workflow           (list all workflow definitions)
+GET /api/metadata/workflow/{name}    (list versions of a workflow)</code></pre>
+
+<h3>5.3 Starting workflows</h3>
+<pre><code>POST /api/workflow   (start a new workflow execution)</code></pre>
+<hr>
+
+<h2>6. Workflow Registration Flow</h2>
+<h3>Dedup logic (pseudo-code)</h3>
+<pre><code>async function registerWorkflow(definition) {
+  const { name, version } = definition;
+  if (!name || typeof version !== 'number') {
+    throw new ValidationError('Workflow must have name and integer version');
+  }
+
+  const existing = await db.query(
+    'SELECT * FROM workflow_registry WHERE name = $1 AND version = $2',
+    [name, version]
+  );
+
+  if (existing.rows.length > 0) {
+    return { workflow: existing.rows[0], created: false, deduplicated: true };
+  }
+
+  await conductorClient.put({
+    url: '/api/metadata/workflow',
+    body: [definition],
+    query: { overwrite: true },
+  });
+
+  const row = await db.query(
+    \`INSERT INTO workflow_registry (name, version, description, definition,
+       input_parameters, conductor_synced, conductor_synced_at, registered_by)
+     VALUES ($1, $2, $3, $4, $5, TRUE, NOW(), $6)
+     RETURNING *\`,
+    [name, version, definition.description, definition,
+     definition.inputParameters ?? [], registeredBy]
+  );
+
+  return { workflow: row.rows[0], created: true, deduplicated: false };
+}</code></pre>
+
+<h3>Edge cases</h3>
+<ul>
+<li><strong>Concurrent registration</strong>: The UNIQUE (name, version) constraint acts as a last-resort dedup. Catch Postgres error 23505 and treat as dedup.</li>
+<li><strong>Conductor publish fails</strong>: Do NOT insert into Postgres. The registration is atomic.</li>
+<li><strong>Definition changes for same name+version</strong>: Treated as immutable. A future enhancement could add a force flag.</li>
+</ul>
+<hr>
+
+<h2>7. Workflow Execution Flow</h2>
+<h3>Implementation notes</h3>
+<ul>
+<li>If <code>version</code> is omitted, api2 looks up the latest active version from Postgres.</li>
+<li>The <code>startWorkflow</code> function from <code>packages/core/src/conductor-api.ts</code> is reused directly.</li>
+<li>The execution log insert is fire-and-forget (non-blocking).</li>
+<li><code>taskToDomain</code> is passed through to Conductor for domain-based routing.</li>
+</ul>
+<hr>
+
+<h2>8. File Structure</h2>
+<pre><code>apps/api2/
+  \u251c\u2500\u2500 package.json
+  \u251c\u2500\u2500 tsconfig.json
+  \u251c\u2500\u2500 Dockerfile
+  \u251c\u2500\u2500 src/
+  \u2502   \u251c\u2500\u2500 index.ts
+  \u2502   \u251c\u2500\u2500 env.ts
+  \u2502   \u251c\u2500\u2500 errors.ts
+  \u2502   \u251c\u2500\u2500 config.ts
+  \u2502   \u251c\u2500\u2500 db.ts
+  \u2502   \u251c\u2500\u2500 routes/
+  \u2502   \u2502   \u251c\u2500\u2500 health.ts
+  \u2502   \u2502   \u251c\u2500\u2500 workflows.ts
+  \u2502   \u2502   \u2514\u2500\u2500 execute.ts
+  \u2502   \u251c\u2500\u2500 graphql/
+  \u2502   \u2502   \u251c\u2500\u2500 schema.graphql
+  \u2502   \u2502   \u251c\u2500\u2500 resolvers.ts
+  \u2502   \u2502   \u2514\u2500\u2500 server.ts
+  \u2502   \u251c\u2500\u2500 workflow/
+  \u2502   \u2502   \u251c\u2500\u2500 service.ts
+  \u2502   \u2502   \u251c\u2500\u2500 repository.ts
+  \u2502   \u2502   \u251c\u2500\u2500 conductor-sync.ts
+  \u2502   \u2502   \u2514\u2500\u2500 types.ts
+  \u2502   \u2514\u2500\u2500 lib/
+  \u2502       \u251c\u2500\u2500 metrics.ts
+  \u2502       \u2514\u2500\u2500 http.ts
+  \u251c\u2500\u2500 data/migrations/
+  \u2502   \u251c\u2500\u2500 001_create_workflow_registry.sql
+  \u2502   \u2514\u2500\u2500 002_create_workflow_executions.sql
+  \u2514\u2500\u2500 test/
+      \u251c\u2500\u2500 workflow-service.test.ts
+      \u251c\u2500\u2500 workflow-repository.test.ts
+      \u2514\u2500\u2500 resolvers.test.ts</code></pre>
+<hr>
+
+<h2>9. Implementation Phases</h2>
+<h3>Phase 1 -- Foundation</h3>
+<p>Boot a running Hono server with Postgres connection and health endpoint.</p>
+<h3>Phase 2 -- Workflow Registration</h3>
+<p>Register workflow definitions with dedup and Conductor sync.</p>
+<h3>Phase 3 -- Workflow Execution</h3>
+<p>Start workflows via API with input validation and audit logging.</p>
+<h3>Phase 4 -- Federated GraphQL Subgraph</h3>
+<p>Expose workflow registry and execution via GraphQL for federation.</p>
+<h3>Phase 5 -- Production Readiness</h3>
+<p>Metrics, Dockerfile, CI/CD, documentation.</p>
+<h3>Phase 6 -- Advanced Features (future)</h3>
+<ul>
+<li>Background sync with Conductor metadata</li>
+<li>Workflow diff detection</li>
+<li>Workflow deprecation cascade</li>
+<li>Bulk registration</li>
+<li>Task definition registration</li>
+<li>Execution status polling via GraphQL subscription</li>
+</ul>`;
+
+// --- DB Schema Document (SCHEMA.md) ---
+const dbSchemaContent = `<h1>NESIFY Database Schema Design</h1>
+<p>Comprehensive database schema for the NESIFY system -- tracking NES projects from PURL intake through forking, building, patching, publishing, and security fix management.</p>
+<p>This schema lives in api2's Postgres database alongside the existing <code>workflow_registry</code> and <code>workflow_execution_log</code> tables defined in PLAN.md.</p>
+<hr>
+
+<h2>1. Entity-Relationship Diagram</h2>
+<p><strong>Key relationships:</strong></p>
+<ul>
+<li>A <strong>project</strong> has many <strong>package_versions</strong>, <strong>project_stages</strong>, <strong>workflow_runs</strong>, <strong>security_fixes</strong>, and <strong>project_artifacts</strong></li>
+<li>A <strong>security_fix</strong> has many <strong>security_fix_files</strong></li>
+<li><code>project.correlation_key</code> matches Conductor's correlationId (<code>ecosystem:package_name</code>) for cross-referencing workflow runs</li>
+</ul>
+<hr>
+
+<h2>2. SQL CREATE TABLE Statements</h2>
+
+<h3>Migration: <code>003_create_project.sql</code></h3>
+<pre><code>CREATE TYPE project_ecosystem AS ENUM ('npm', 'maven', 'pypi', 'nuget', 'go', 'crates');
+CREATE TYPE project_status AS ENUM ('onboarding', 'active', 'deprecated', 'archived');
+
+CREATE TABLE IF NOT EXISTS project (
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  purl                TEXT        NOT NULL,
+  ecosystem           project_ecosystem NOT NULL,
+  package_name        TEXT        NOT NULL,
+  namespace           TEXT,
+  original_repo_url   TEXT,
+  original_repo_owner TEXT,
+  original_repo_name  TEXT,
+  original_tag        TEXT,
+  original_commit_sha TEXT,
+  fork_repo_url       TEXT,
+  fork_repo_owner     TEXT        NOT NULL DEFAULT 'nes-pkg-playground-1',
+  fork_repo_name      TEXT,
+  fork_branch         TEXT,
+  registry_metadata   JSONB       NOT NULL DEFAULT '{}',
+  monorepo_type       TEXT,
+  monorepo_path       TEXT,
+  status              project_status NOT NULL DEFAULT 'onboarding',
+  correlation_key     TEXT        NOT NULL,
+  run_id              TEXT,
+  requested_by        TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_project_correlation UNIQUE (correlation_key)
+);</code></pre>
+
+<h3>Migration: <code>004_create_project_artifact.sql</code></h3>
+<pre><code>CREATE TABLE IF NOT EXISTS project_artifact (
+  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  project_id      BIGINT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  artifact_id     TEXT        NOT NULL,
+  name            TEXT        NOT NULL,
+  purl            TEXT        NOT NULL,
+  path            TEXT        NOT NULL,
+  ecosystem       project_ecosystem NOT NULL,
+  version         TEXT        NOT NULL,
+  releasable      BOOLEAN     NOT NULL DEFAULT TRUE,
+  build_group     TEXT        NOT NULL,
+  release_group   TEXT        NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_project_artifact UNIQUE (project_id, artifact_id)
+);</code></pre>
+
+<h3>Migration: <code>005_create_package_version.sql</code></h3>
+<pre><code>CREATE TYPE publish_status AS ENUM (
+  'pending', 'building', 'built', 'publishing', 'published', 'failed'
+);
+
+CREATE TABLE IF NOT EXISTS package_version (
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  project_id          BIGINT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  artifact_id         TEXT,
+  original_name       TEXT        NOT NULL,
+  original_version    TEXT        NOT NULL,
+  nes_name            TEXT,
+  nes_version         TEXT,
+  nes_full_version    TEXT,
+  purl                TEXT,
+  registry_url        TEXT,
+  gh_packages_url     TEXT,
+  git_tag             TEXT,
+  publish_status      publish_status NOT NULL DEFAULT 'pending',
+  published_at        TIMESTAMPTZ,
+  metadata            JSONB       NOT NULL DEFAULT '{}',
+  nes_package_json    JSONB,
+  compatibility       JSONB,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_package_version UNIQUE (project_id, original_name, original_version)
+);</code></pre>
+
+<h3>Migration: <code>006_create_project_stage.sql</code></h3>
+<pre><code>CREATE TYPE stage_name AS ENUM (
+  'resolve', 'mirror', 'discover', 'analyze', 'nesify',
+  'setup_build', 'verify', 'patch', 'publish', 'register', 'post_release'
+);
+CREATE TYPE stage_status AS ENUM (
+  'pending', 'in_progress', 'completed', 'failed', 'skipped', 'retrying'
+);
+
+CREATE TABLE IF NOT EXISTS project_stage (
+  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  project_id      BIGINT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  stage           stage_name  NOT NULL,
+  status          stage_status NOT NULL DEFAULT 'pending',
+  executor        TEXT,
+  conductor_task_type TEXT,
+  domain          TEXT,
+  input_payload   JSONB       NOT NULL DEFAULT '{}',
+  output_payload  JSONB,
+  verify_outcome  TEXT,
+  verify_score    INT,
+  verify_reason   TEXT,
+  attempt         INT         NOT NULL DEFAULT 1,
+  started_at      TIMESTAMPTZ,
+  completed_at    TIMESTAMPTZ,
+  duration_ms     BIGINT,
+  error_message   TEXT,
+  error_detail    JSONB,
+  retryable       BOOLEAN     DEFAULT FALSE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_project_stage_attempt UNIQUE (project_id, stage, attempt)
+);</code></pre>
+
+<h3>Migration: <code>007_create_workflow_run.sql</code></h3>
+<pre><code>CREATE TYPE workflow_trigger AS ENUM (
+  'api', 'portal', 'cron', 'cve_alert', 'manual', 'rerun'
+);
+
+CREATE TABLE IF NOT EXISTS workflow_run (
+  id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  project_id              BIGINT REFERENCES project(id) ON DELETE SET NULL,
+  conductor_workflow_id   TEXT        NOT NULL UNIQUE,
+  workflow_name           TEXT        NOT NULL,
+  workflow_version        INT,
+  correlation_id          TEXT,
+  status                  TEXT        NOT NULL DEFAULT 'RUNNING',
+  run_id                  TEXT,
+  input_payload           JSONB       NOT NULL DEFAULT '{}',
+  output_payload          JSONB,
+  triggered_by            workflow_trigger NOT NULL DEFAULT 'api',
+  triggered_by_user       TEXT,
+  agent_config            JSONB,
+  task_to_domain          JSONB,
+  started_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at            TIMESTAMPTZ,
+  duration_ms             BIGINT,
+  total_input_tokens      BIGINT      DEFAULT 0,
+  total_output_tokens     BIGINT      DEFAULT 0,
+  estimated_cost_usd      NUMERIC(10, 4),
+  failed_reason           TEXT,
+  rerun_from_workflow_id  TEXT,
+  rerun_from_task         TEXT,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);</code></pre>
+
+<h3>Migration: <code>008_create_security_fix.sql</code></h3>
+<pre><code>CREATE TYPE cve_severity AS ENUM ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW');
+CREATE TYPE cve_fix_type AS ENUM (
+  'backport', 'patch', 'config_change', 'dependency_update', 'workaround'
+);
+CREATE TYPE cve_fix_status AS ENUM (
+  'investigating', 'in_progress', 'fixed', 'released', 'wont_fix', 'not_applicable'
+);
+
+CREATE TABLE IF NOT EXISTS security_fix (
+  id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  project_id              BIGINT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  workflow_run_id         BIGINT REFERENCES workflow_run(id) ON DELETE SET NULL,
+  cve_id                  TEXT        NOT NULL,
+  ghsa_id                 TEXT,
+  severity                cve_severity,
+  cvss_score              NUMERIC(3, 1),
+  summary                 TEXT,
+  sources                 cve_advisory_source[] NOT NULL DEFAULT '{}',
+  affected_versions       JSONB       NOT NULL DEFAULT '[]',
+  fixed_in_upstream       TEXT,
+  fix_commit_sha          TEXT,
+  fix_branch              TEXT,
+  fix_type                cve_fix_type,
+  upstream_fix_ref        TEXT,
+  upstream_pr_url         TEXT,
+  patch_outcome           cve_patch_outcome,
+  outcome_cause           cve_outcome_cause,
+  outcome_source          cve_outcome_source,
+  outcome_reason          TEXT,
+  backport_results        JSONB       NOT NULL DEFAULT '[]',
+  prs_opened              INT         DEFAULT 0,
+  draft_prs               INT         DEFAULT 0,
+  tests_passed            INT         DEFAULT 0,
+  tests_failed            INT         DEFAULT 0,
+  patch_agent             TEXT,
+  status                  cve_fix_status NOT NULL DEFAULT 'investigating',
+  advisory_published      BOOLEAN     NOT NULL DEFAULT FALSE,
+  advisory_url            TEXT,
+  discovered_at           TIMESTAMPTZ,
+  fix_completed_at        TIMESTAMPTZ,
+  released_at             TIMESTAMPTZ,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_security_fix_project_cve UNIQUE (project_id, cve_id)
+);</code></pre>
+
+<h3>Migration: <code>009_create_security_fix_file.sql</code></h3>
+<pre><code>CREATE TYPE file_change_type AS ENUM ('added', 'modified', 'deleted');
+
+CREATE TABLE IF NOT EXISTS security_fix_file (
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  security_fix_id     BIGINT NOT NULL REFERENCES security_fix(id) ON DELETE CASCADE,
+  file_path           TEXT        NOT NULL,
+  change_type         file_change_type NOT NULL,
+  diff_summary        TEXT,
+  lines_added         INT,
+  lines_removed       INT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_security_fix_file UNIQUE (security_fix_id, file_path)
+);</code></pre>
+<hr>
+
+<h2>3. GraphQL Schema Types, Queries, and Mutations</h2>
+<p>The full GraphQL schema includes types for Project, ProjectArtifact, PackageVersion, ProjectStage, WorkflowRun, SecurityFix, SecurityFixFile, plus Connection/pagination types, Stats types, and comprehensive Query/Mutation definitions.</p>
+<p>Key entity types with federation directives: <code>Project @key(fields: "id")</code>, <code>ProjectArtifact @key(fields: "id")</code>, <code>PackageVersion @key(fields: "id")</code>, <code>WorkflowRun @key(fields: "id")</code>, <code>SecurityFix @key(fields: "id")</code>.</p>
+<hr>
+
+<h2>4. Conductor Task Definitions</h2>
+<p>Sync tasks for stage management:</p>
+<ul>
+<li><code>NESIFY_SYNC_PROJECT</code> -- Sync project state after resolve + mirror stages</li>
+<li><code>NESIFY_SYNC_STAGE</code> -- Record a stage transition in project_stage table</li>
+<li><code>NESIFY_SYNC_SECURITY_FIXES</code> -- Upsert security fixes from analyze + patch output</li>
+<li><code>NESIFY_SYNC_PACKAGES</code> -- Record package versions from nesify + publish output</li>
+</ul>
+<hr>
+
+<h2>5. Example Queries</h2>
+<h3>Find a project by package name</h3>
+<pre><code>SELECT p.*, ls.stage AS current_stage, ls.status AS current_stage_status
+FROM project p
+LEFT JOIN LATERAL (
+  SELECT ps.stage, ps.status
+  FROM project_stage ps WHERE ps.project_id = p.id
+  ORDER BY ps.started_at DESC NULLS LAST LIMIT 1
+) ls ON TRUE
+WHERE p.ecosystem = 'npm' AND p.package_name = 'moment';</code></pre>
+
+<h3>List all CVEs for a project with patch outcomes</h3>
+<pre><code>SELECT sf.cve_id, sf.severity, sf.cvss_score, sf.summary,
+       sf.patch_outcome, sf.status, sf.prs_opened, sf.tests_passed
+FROM security_fix sf
+JOIN project p ON p.id = sf.project_id
+WHERE p.package_name = 'angular' AND p.ecosystem = 'npm'
+ORDER BY
+  CASE sf.severity
+    WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2
+    WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4
+  END;</code></pre>
+
+<h3>Dashboard: CVE fix rate by ecosystem</h3>
+<pre><code>SELECT p.ecosystem,
+       COUNT(DISTINCT sf.id) AS total_cves,
+       COUNT(DISTINCT sf.id) FILTER (WHERE sf.patch_outcome = 'patched') AS patched,
+       ROUND(100.0 * COUNT(DISTINCT sf.id) FILTER (WHERE sf.patch_outcome = 'patched')
+         / NULLIF(COUNT(DISTINCT sf.id), 0), 1) AS patch_rate_pct
+FROM security_fix sf
+JOIN project p ON p.id = sf.project_id
+GROUP BY p.ecosystem ORDER BY total_cves DESC;</code></pre>`;
+
+// --- Mermaid ER Diagram generated from SCHEMA.md ---
+const nesifyErDiagram = `erDiagram
+    project {
+        bigint id PK
+        text purl
+        project_ecosystem ecosystem
+        text package_name
+        text namespace
+        text original_repo_url
+        text original_repo_owner
+        text original_repo_name
+        text original_tag
+        text original_commit_sha
+        text fork_repo_url
+        text fork_repo_owner
+        text fork_repo_name
+        text fork_branch
+        jsonb registry_metadata
+        text monorepo_type
+        text monorepo_path
+        project_status status
+        text correlation_key
+        text run_id
+        text requested_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    project_artifact {
+        bigint id PK
+        bigint project_id FK
+        text artifact_id
+        text name
+        text purl
+        text path
+        project_ecosystem ecosystem
+        text version
+        boolean releasable
+        text build_group
+        text release_group
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    package_version {
+        bigint id PK
+        bigint project_id FK
+        text artifact_id
+        text original_name
+        text original_version
+        text nes_name
+        text nes_version
+        text nes_full_version
+        text purl
+        text registry_url
+        text gh_packages_url
+        text git_tag
+        publish_status publish_status
+        timestamptz published_at
+        jsonb metadata
+        jsonb nes_package_json
+        jsonb compatibility
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    project_stage {
+        bigint id PK
+        bigint project_id FK
+        stage_name stage
+        stage_status status
+        text executor
+        text conductor_task_type
+        text domain
+        jsonb input_payload
+        jsonb output_payload
+        text verify_outcome
+        int verify_score
+        text verify_reason
+        int attempt
+        timestamptz started_at
+        timestamptz completed_at
+        bigint duration_ms
+        text error_message
+        jsonb error_detail
+        boolean retryable
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    workflow_run {
+        bigint id PK
+        bigint project_id FK
+        text conductor_workflow_id
+        text workflow_name
+        int workflow_version
+        text correlation_id
+        text status
+        text run_id
+        jsonb input_payload
+        jsonb output_payload
+        workflow_trigger triggered_by
+        text triggered_by_user
+        jsonb agent_config
+        jsonb task_to_domain
+        timestamptz started_at
+        timestamptz completed_at
+        bigint duration_ms
+        bigint total_input_tokens
+        bigint total_output_tokens
+        numeric estimated_cost_usd
+        text failed_reason
+        text rerun_from_workflow_id
+        text rerun_from_task
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    security_fix {
+        bigint id PK
+        bigint project_id FK
+        bigint workflow_run_id FK
+        text cve_id
+        text ghsa_id
+        cve_severity severity
+        numeric cvss_score
+        text summary
+        text fix_commit_sha
+        text fix_branch
+        cve_fix_type fix_type
+        text upstream_fix_ref
+        text upstream_pr_url
+        cve_patch_outcome patch_outcome
+        cve_fix_status status
+        boolean advisory_published
+        text advisory_url
+        timestamptz discovered_at
+        timestamptz fix_completed_at
+        timestamptz released_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    security_fix_file {
+        bigint id PK
+        bigint security_fix_id FK
+        text file_path
+        file_change_type change_type
+        text diff_summary
+        int lines_added
+        int lines_removed
+        timestamptz created_at
+    }
+    workflow_registry {
+        bigint id PK
+        text name
+        int version
+        text description
+        text status
+        jsonb definition
+        text_arr input_parameters
+        boolean conductor_synced
+        timestamptz conductor_synced_at
+        text registered_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    workflow_execution_log {
+        bigint id PK
+        text workflow_name
+        int workflow_version
+        text conductor_workflow_id
+        text correlation_id
+        jsonb input_payload
+        text started_by
+        timestamptz started_at
+    }
+
+    project ||--o{ project_artifact : "has artifacts"
+    project ||--o{ package_version : "has versions"
+    project ||--o{ project_stage : "has stages"
+    project ||--o{ workflow_run : "has runs"
+    project ||--o{ security_fix : "has fixes"
+    security_fix ||--o{ security_fix_file : "has files"
+    workflow_run ||--o{ security_fix : "discovers"
+    workflow_registry ||--o{ workflow_execution_log : "executes"`;
+
 const defaultDocuments = [
   {
-    id: 'd0', title: 'NES Service Project Template', type: 'hld', status: 'review',
-    description: 'Comprehensive template for scaffolding new NES (Never-Ending Support) backend services, covering project structure, build system, configuration, Docker, CI/CD, deployment, and scaffolding checklist.',
-    content: '<h1>NES Service Project Template</h1><p>A comprehensive template for scaffolding new NES (Never-Ending Support) backend services, derived from the production <code>nes-ontology</code> service. This template covers project structure, build system, configuration, Docker, CI/CD, deployment, and a scaffolding checklist.</p><hr><h2>1. Project Structure</h2><pre><code>nes-&lt;service-name&gt;/\n\u251c\u2500\u2500 .github/\n\u2502   \u2514\u2500\u2500 workflows/\n\u2502       \u251c\u2500\u2500 ci.yml                    # PR checks (lint, typecheck, boundaries, unit tests)\n\u2502       \u251c\u2500\u2500 release-to-stage.yml      # Main branch \u2192 build image \u2192 create stage deploy PR\n\u2502       \u251c\u2500\u2500 promote-to-prod.yml       # Manual: promote stage image tag to prod values PR\n\u2502       \u251c\u2500\u2500 e2e-staging.yml           # E2E gate on prod deploy PRs (tests against staging)\n\u2502       \u2514\u2500\u2500 publish-client.yml        # Publish @nes/&lt;name&gt;-client to Artifactory npm-dev\n\u251c\u2500\u2500 client/                           # GraphQL client package (@nes/&lt;name&gt;-client)\n\u251c\u2500\u2500 data/\n\u2502   \u2514\u2500\u2500 migrations/                   # SQL migrations (ordered by timestamp)\n\u251c\u2500\u2500 docs/\n\u2502   \u2514\u2500\u2500 migrations/                   # Architecture summaries for each migration\n\u251c\u2500\u2500 infra/\n\u2502   \u2514\u2500\u2500 helm/                         # Helm values for stage and prod\n\u251c\u2500\u2500 scripts/                          # Setup and utility scripts\n\u251c\u2500\u2500 src/\n\u2502   \u251c\u2500\u2500 main.ts                       # Entrypoint\n\u2502   \u251c\u2500\u2500 config.ts                     # Centralized env var access\n\u2502   \u251c\u2500\u2500 domain.ts                     # App/request service type definitions\n\u2502   \u251c\u2500\u2500 services.ts                   # Service factory functions\n\u2502   \u251c\u2500\u2500 db-config.ts                  # Knex database connection config\n\u2502   \u251c\u2500\u2500 generated/                    # Codegen output (committed)\n\u2502   \u251c\u2500\u2500 app/                          # Fastify plugins and routes\n\u2502   \u251c\u2500\u2500 security/                     # Auth helpers (JWT, OIDC)\n\u2502   \u251c\u2500\u2500 shared/                       # Pure utilities (lowest layer)\n\u2502   \u2514\u2500\u2500 &lt;domain&gt;/                    # Domain modules (one per bounded context)\n\u2502       \u251c\u2500\u2500 schema.graphql            # Domain GraphQL schema\n\u2502       \u251c\u2500\u2500 resolvers.ts              # GraphQL resolvers\n\u2502       \u251c\u2500\u2500 service.ts                # Domain business logic\n\u2502       \u251c\u2500\u2500 repository.ts             # Database access\n\u2502       \u2514\u2500\u2500 types.ts                  # Domain-specific types\n\u251c\u2500\u2500 tests/                            # Unit and E2E tests\n\u251c\u2500\u2500 tools/                            # Ingestion scripts and CLI tools\n\u251c\u2500\u2500 Dockerfile                        # Production container image\n\u251c\u2500\u2500 package.json / pnpm-workspace.yaml\n\u251c\u2500\u2500 tsconfig.json / biome.json\n\u251c\u2500\u2500 vitest.config.ts / vitest.e2e.config.ts\n\u2514\u2500\u2500 CLAUDE.md / README.md</code></pre><h2>2. Build System (pnpm)</h2><p>Uses pnpm workspaces with a dependency catalog. All dependency versions are pinned centrally in <code>pnpm-workspace.yaml</code> using <code>catalog:</code> references.</p><p><strong>Key scripts:</strong></p><ul><li><code>pnpm dev</code> \u2014 Start with hot reload (<code>node --watch src/main.ts</code>)</li><li><code>pnpm biome</code> / <code>pnpm biome:fix</code> \u2014 Lint and format</li><li><code>pnpm codegen</code> \u2014 Generate GraphQL types</li><li><code>pnpm lint:boundaries</code> \u2014 Check module boundaries</li><li><code>pnpm test</code> / <code>pnpm test:e2e</code> \u2014 Run unit / E2E tests</li><li><code>pnpm typecheck</code> \u2014 TypeScript type checking</li></ul><h2>3. TypeScript Configuration</h2><p><strong>Key decisions:</strong></p><ul><li><code>noEmit: true</code> \u2014 Node 24 runs <code>.ts</code> natively via type stripping; no build step</li><li><code>erasableSyntaxOnly: true</code> \u2014 Required for Node\'s native TS support</li><li><code>verbatimModuleSyntax: true</code> \u2014 Enforces <code>import type</code> for type-only imports</li><li><code>noUncheckedIndexedAccess: true</code> \u2014 All index access may be <code>undefined</code></li></ul><h2>4. Linting &amp; Formatting</h2><p>Uses <strong>Biome</strong> for formatting and general linting (2-space indent, single quotes, 120-char lines). ESLint is scoped to <strong>module boundary enforcement only</strong> via <code>eslint-plugin-boundaries</code>.</p><h2>5. Application Entry Point</h2><p>Entry via <code>src/main.ts</code> using <code>@nes/shared</code> app builder. Centralized configuration in <code>src/config.ts</code> covering:</p><ul><li>Service metadata (name, version, lane)</li><li>Security (Keycloak OIDC)</li><li>Observability (OpenTelemetry)</li><li>Apollo Federation subgraph</li><li>Database (Knex)</li><li>Fastify autoload (routes, plugins)</li></ul><h2>6. GraphQL Code Generation</h2><p>Uses <code>@graphql-codegen/cli</code> to generate both server-side resolver types (<code>src/generated/graphql.ts</code>) and client-side operation types (<code>client/generated.ts</code>). Federation-compatible with typed document nodes.</p><h2>7. Test Configuration</h2><p><strong>Unit tests</strong> via <code>vitest.config.ts</code> \u2014 run in Node environment, globals enabled, V8 coverage.</p><p><strong>E2E tests</strong> via <code>vitest.e2e.config.ts</code> \u2014 30s timeout, 2 retries, sequential execution, no coverage.</p><h2>8. Docker Setup</h2><p><strong>Key patterns:</strong></p><ul><li>Alpine Node 24.12.0 base for minimal image size</li><li>Non-root <code>node</code> user (UID 1000) for security</li><li>BuildKit secret mounting for <code>.npmrc</code> (private registry auth)</li><li>Production-only deps via <code>--prod --frozen-lockfile</code></li><li>RDS CA bundle fetched at build time for PostgreSQL TLS</li><li>No build step needed \u2014 Node 24 runs <code>.ts</code> natively</li></ul><h2>9. CI/CD Workflows</h2><p>Five GitHub Actions workflows:</p><ul><li><strong>ci.yml</strong> \u2014 PR checks: commit lint, markdown lint, module boundaries, code quality (Biome), typecheck, codegen verification, client build, unit tests</li><li><strong>release-to-stage.yml</strong> \u2014 On push to main: build Docker image, tag with 7-char SHA, push to GHCR, create PR to update <code>values-stage.yml</code></li><li><strong>promote-to-prod.yml</strong> \u2014 Manual dispatch: copy stage image tag to <code>values-prod.yml</code>, promote client npm-dev \u2192 npm-prod</li><li><strong>e2e-staging.yml</strong> \u2014 Production gate: runs E2E tests against staging when <code>values-prod.yml</code> is updated</li><li><strong>publish-client.yml</strong> \u2014 Auto-publish client package to Artifactory on client changes</li></ul><h2>10. Deployment (Helm + ArgoCD)</h2><p><strong>Deployment Flow:</strong></p><p>Feature branch \u2192 PR \u2192 Merge to main \u2192 Build Docker image (7-char SHA) \u2192 Push to GHCR \u2192 Create stage deploy PR (auto-approved) \u2192 ArgoCD syncs stage \u2192 Manual promote-to-prod \u2192 E2E gate \u2192 ArgoCD syncs prod</p><p><strong>Stage vs Prod differences:</strong></p><table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px">Setting</th><th style="text-align:left;padding:6px">Stage</th><th style="text-align:left;padding:6px">Prod</th></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">minReplicas</td><td style="padding:6px">1</td><td style="padding:6px">3</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">maxReplicas</td><td style="padding:6px">2</td><td style="padding:6px">5</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">CPU requests</td><td style="padding:6px">250m</td><td style="padding:6px">500m</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px">Memory limits</td><td style="padding:6px">512M</td><td style="padding:6px">1Gi</td></tr></table><h2>11. Conventions &amp; Rules</h2><p><strong>Commit messages:</strong> Conventional commits with scoped prefixes (<code>feat(&lt;domain&gt;)</code>, <code>fix(&lt;domain&gt;)</code>, <code>chore(stage)</code>, etc.)</p><p><strong>Module Boundary Architecture:</strong> Default \u201cdisallow\u201d \u2014 every cross-boundary import must be explicitly allowed. Domains are isolated from each other. Shared and generated modules form the bottom layer.</p><p><strong>Code rules:</strong></p><ol><li>No ad hoc <code>process.env</code> \u2014 centralize in <code>src/config.ts</code></li><li>No <code>new Date()</code> \u2014 use <code>Temporal</code> from <code>@js-temporal/polyfill</code></li><li>No <code>any</code> without justification</li><li>Biome defaults \u2014 2-space indent, single quotes, 120-char lines</li><li>Migration docs \u2014 every SQL migration gets an architecture summary</li></ol><h2>12. Required GitHub Secrets &amp; Variables</h2><p><strong>Repository Variables:</strong></p><ul><li><code>AWS_OIDC_ROLE_ARN</code> \u2014 AWS role ARN for OIDC federation</li><li><code>AWS_REGION</code> \u2014 AWS region for OIDC</li><li><code>NES_UNIVERSE_CLIENT_ID</code> \u2014 Keycloak client ID for E2E OAuth2 token</li></ul><p><strong>Repository Secrets:</strong></p><ul><li><code>NES_CI_READ_TOKEN</code> \u2014 GitHub PAT for creating PRs</li><li><code>NES_UNIVERSE_DEV_CLIENT_SECRET</code> \u2014 Keycloak client secret for E2E tests</li></ul><h2>13. Scaffolding Checklist</h2><h3>Initial Setup</h3><ul><li>Create repo <code>neverendingsupport/nes-&lt;service-name&gt;</code></li><li>Copy template files from this document</li><li>Replace all <code>&lt;service-name&gt;</code> / <code>&lt;name&gt;</code> / <code>&lt;domain&gt;</code> placeholders</li><li>Set <code>.nvmrc</code> to <code>24.12.0</code></li><li>Run <code>corepack enable &amp;&amp; pnpm install</code></li></ul><h3>Configuration</h3><ul><li>Configure <code>src/config.ts</code> with service-specific env vars</li><li>Configure <code>src/db-config.ts</code> with database connections</li><li>Define <code>src/domain.ts</code> with app/request service types</li><li>Implement <code>src/services.ts</code> service factories</li></ul><h3>GraphQL Schema</h3><ul><li>Create <code>src/&lt;domain&gt;/schema.graphql</code> for each domain</li><li>Run <code>pnpm codegen</code> to generate types</li><li>Commit generated files</li></ul><h3>CI/CD</h3><ul><li>Create all 5 workflow files in <code>.github/workflows/</code></li><li>Set required repository secrets and variables</li><li>Configure branch protection on <code>main</code></li></ul><h3>Deployment</h3><ul><li>Create Helm values for stage and prod</li><li>Configure ArgoCD application</li><li>Set GHCR image pull secret in target namespaces</li><li>Verify health endpoint at <code>/internal/health</code></li></ul><h3>Validation</h3><ul><li><code>pnpm biome:fix</code> passes</li><li><code>pnpm typecheck</code> passes</li><li><code>pnpm lint:boundaries</code> passes</li><li><code>pnpm test</code> passes</li><li><code>pnpm codegen</code> produces no uncommitted changes</li><li>Docker build succeeds locally</li><li>Service starts with <code>LANE=local AUTH_ENABLED=false pnpm dev</code></li></ul>',
-    tags: ['t1', 't6', 't5'], author: 'u1', collaborators: ['u2', 'u3', 'u4'],
-    createdAt: '2026-04-05', updatedAt: '2026-04-08',
+    id: 'd1', title: 'api2 -- Workflow Registry API', type: 'hld', status: 'review',
+    description: 'High-level design for the api2 service: a managed registry for Conductor workflow definitions with dedup, listing, execution, and federated GraphQL subgraph.',
+    content: api2ProposalContent,
+    tags: ['t1', 't5', 't4'], author: 'u1', collaborators: [],
+    createdAt: '2026-04-08', updatedAt: '2026-04-08',
+    relatedDocs: ['d2'],
     versions: [
-      { id: 'v0a', label: 'Initial template from nes-ontology', author: 'u1', date: '2026-04-05', additions: 1536, deletions: 0 },
-      { id: 'v0b', label: 'Added CI/CD workflow details', author: 'u3', date: '2026-04-06', additions: 412, deletions: 34 },
-      { id: 'v0c', label: 'Added scaffolding checklist', author: 'u1', date: '2026-04-07', additions: 198, deletions: 12 },
-      { id: 'v0d', label: 'Review feedback incorporated', author: 'u2', date: '2026-04-08', additions: 67, deletions: 29 }
-    ],
-    comments: [
-      { id: 'c0a', author: 'u2', text: 'This is an excellent reference. The module boundary architecture diagram is particularly clear.', date: '2026-04-06', resolved: false, replies: [
-        { id: 'c0a1', author: 'u1', text: 'Thanks Sarah! The boundaries pattern has been battle-tested on nes-ontology for months.', date: '2026-04-06' }
-      ]},
-      { id: 'c0b', author: 'u4', text: 'Should we add a section on database connection pooling configuration? The Knex defaults may not be optimal for all services.', date: '2026-04-07', resolved: false, replies: [
-        { id: 'c0b1', author: 'u3', text: 'Good point. I can add recommended pool settings for stage vs prod.', date: '2026-04-07' }
-      ]},
-      { id: 'c0c', author: 'u5', text: 'The E2E test OAuth2 flow looks solid. One question: should we document the staging IDP URL as a convention or make it configurable per service?', date: '2026-04-08', resolved: false, replies: [] }
-    ],
-    reviews: [
-      { reviewer: 'u2', status: 'approved', date: '2026-04-07', comment: 'Comprehensive and well-structured. This will save significant time on new service scaffolding.' },
-      { reviewer: 'u4', status: 'changes', date: '2026-04-07', comment: 'Need to add connection pool config guidance. Otherwise looks great.' },
-      { reviewer: 'u5', status: 'pending', date: null, comment: null }
-    ]
-  },
-  {
-    id: 'd1', title: 'Agent Executor Platform HLD', type: 'hld', status: 'approved',
-    description: 'High-level design for the agent executor platform including container orchestration, MCP integration, and security model.',
-    content: '<h1>Agent Executor Platform HLD</h1><h2>1. Overview</h2><p>The Agent Executor Platform provides a secure, isolated environment for executing AI agent tasks within the HeroDevs ecosystem. It enables agents to perform complex operations while maintaining tenant isolation and audit trails.</p><h2>2. Architecture</h2><p>The platform consists of three main components:</p><ul><li><strong>Executor Service</strong> - Manages agent lifecycle, resource allocation, and task scheduling</li><li><strong>MCP Gateway</strong> - Routes tool calls through the Model Context Protocol layer</li><li><strong>Sandbox Runtime</strong> - Provides isolated execution environments with resource limits</li></ul><h2>3. Data Model</h2><p>Core entities include Agent, Execution, Task, and AuditLog. Each execution is scoped to a tenant and tracked with full provenance.</p><h2>4. Security</h2><p>All executions run in unprivileged containers with network policies. Tool access is governed by OAuth2 scopes and RLS policies ensure tenant data isolation.</p>',
-    tags: ['t1', 't2', 't6'], author: 'u1', collaborators: ['u2', 'u3'],
-    createdAt: '2026-03-20', updatedAt: '2026-04-06',
-    versions: [
-      { id: 'v1', label: 'Initial Draft', author: 'u1', date: '2026-03-20', additions: 245, deletions: 0 },
-      { id: 'v2', label: 'Added security section', author: 'u2', date: '2026-03-25', additions: 89, deletions: 12 },
-      { id: 'v3', label: 'Final review updates', author: 'u1', date: '2026-04-06', additions: 34, deletions: 18 }
-    ],
-    comments: [
-      { id: 'c1', author: 'u2', text: 'The sandbox runtime should also include CPU time limits per execution.', date: '2026-03-26', resolved: true, replies: [
-        { id: 'c1r1', author: 'u1', text: 'Good point. Added to the resource limits section.', date: '2026-03-26' }
-      ]},
-      { id: 'c2', author: 'u4', text: 'Should we document the MCP tool registration flow here or in a separate doc?', date: '2026-04-01', resolved: false, replies: [] }
-    ],
-    reviews: [
-      { reviewer: 'u2', status: 'approved', date: '2026-04-05', comment: 'LGTM. Security model is solid.' },
-      { reviewer: 'u4', status: 'approved', date: '2026-04-06', comment: 'Approved with minor suggestions incorporated.' },
-      { reviewer: 'u5', status: 'approved', date: '2026-04-06', comment: 'Architecture looks good.' }
-    ]
-  },
-  {
-    id: 'd2', title: 'Channel Messaging System Design', type: 'hld', status: 'review',
-    description: 'Inter-agent communication protocol using channels for pub/sub messaging with persistence and replay.',
-    content: '<h1>Channel Messaging System Design</h1><h2>1. Overview</h2><p>The Channel Messaging System enables real-time, persistent communication between agents, services, and human operators. It provides pub/sub semantics with guaranteed delivery and message replay.</p><h2>2. Architecture</h2><p>Built on a topic-based messaging model with persistent storage:</p><ul><li><strong>Channel Service</strong> - Manages channel lifecycle, membership, and ACLs</li><li><strong>Message Broker</strong> - Handles message routing, delivery, and persistence</li><li><strong>Replay Engine</strong> - Enables historical message retrieval and search</li></ul><h2>3. Message Format</h2><p>Messages use a structured envelope with metadata, payload, and routing information. Supports text, structured data, and binary attachments.</p>',
-    tags: ['t1', 't5'], author: 'u1', collaborators: ['u3', 'u4'],
-    createdAt: '2026-04-01', updatedAt: '2026-04-07',
-    versions: [
-      { id: 'v1', label: 'Initial draft', author: 'u1', date: '2026-04-01', additions: 312, deletions: 0 },
-      { id: 'v2', label: 'Added message format spec', author: 'u3', date: '2026-04-05', additions: 156, deletions: 23 }
-    ],
-    comments: [
-      { id: 'c3', author: 'u3', text: 'We should add a section on message ordering guarantees.', date: '2026-04-06', resolved: false, replies: [] },
-      { id: 'c4', author: 'u5', text: 'How does this interact with the existing Slack integration?', date: '2026-04-07', resolved: false, replies: [
-        { id: 'c4r1', author: 'u1', text: 'Slack is a transport adapter. Messages from Slack channels bridge into HD channels.', date: '2026-04-07' }
-      ]}
-    ],
-    reviews: [
-      { reviewer: 'u2', status: 'pending', date: null, comment: null },
-      { reviewer: 'u4', status: 'changes', date: '2026-04-07', comment: 'Need more detail on replay semantics and retention policies.' }
-    ]
-  },
-  {
-    id: 'd3', title: 'TSC-2026-04: GraphQL Federation Strategy', type: 'tsc', status: 'review',
-    description: 'Decision record for adopting Apollo Federation v2 as the standard for service composition.',
-    content: '<h1>TSC-2026-04: GraphQL Federation Strategy</h1><h2>Status</h2><p><strong>Proposed</strong> - Under review by TSC</p><h2>Context</h2><p>As the platform grows, we need a consistent approach to composing GraphQL schemas across microservices. The current approach of manual schema stitching is error-prone and does not scale.</p><h2>Decision</h2><p>Adopt Apollo Federation v2 as the standard for GraphQL service composition. Each service owns its subgraph and extends shared types via federation directives.</p><h2>Options Considered</h2><h3>Option A: Apollo Federation v2</h3><p>Pros: Mature ecosystem, good tooling, declarative composition. Cons: Vendor dependency, learning curve.</p><h3>Option B: Schema Stitching</h3><p>Pros: No vendor dependency. Cons: Manual, error-prone, poor type safety.</p><h3>Option C: Single Monolithic Schema</h3><p>Pros: Simple. Cons: Does not scale, coupling.</p><h2>Consequences</h2><p>All new services must publish a federation-compatible subgraph. Existing services will be migrated incrementally.</p>',
-    tags: ['t1', 't5'], author: 'u2', collaborators: ['u1', 'u4'],
-    createdAt: '2026-04-03', updatedAt: '2026-04-07',
-    versions: [
-      { id: 'v1', label: 'Initial proposal', author: 'u2', date: '2026-04-03', additions: 198, deletions: 0 }
-    ],
-    comments: [
-      { id: 'c5', author: 'u1', text: 'Strong +1 for Federation v2. We already have the router running.', date: '2026-04-04', resolved: false, replies: [] }
-    ],
-    reviews: [
-      { reviewer: 'u1', status: 'approved', date: '2026-04-05', comment: 'Fully aligned. Let us move forward.' },
-      { reviewer: 'u4', status: 'pending', date: null, comment: null },
-      { reviewer: 'u5', status: 'pending', date: null, comment: null }
-    ]
-  },
-  {
-    id: 'd4', title: 'OAuth2 Token Exchange Flow', type: 'hld', status: 'approved',
-    description: 'Design for the token exchange mechanism between user tokens and service-scoped tokens for MCP tool access.',
-    content: '<h1>OAuth2 Token Exchange Flow</h1><h2>1. Overview</h2><p>The token exchange flow enables secure delegation of user credentials to agent-scoped tokens. This is critical for MCP tools that need to act on behalf of a user while maintaining least-privilege access.</p><h2>2. Flow</h2><p>1. User authenticates via Keycloak<br>2. BFF exchanges user token for agent-scoped token<br>3. Agent-scoped token is passed to executor<br>4. Executor uses token for MCP tool calls<br>5. Token is scoped to specific tools and tenant</p><h2>3. Security</h2><p>Agent tokens have reduced scope and short TTL. All token exchanges are logged for audit. RLS policies on the supergraph enforce tenant boundaries.</p>',
-    tags: ['t2', 't5'], author: 'u4', collaborators: ['u1', 'u2'],
-    createdAt: '2026-03-28', updatedAt: '2026-04-04',
-    versions: [
-      { id: 'v1', label: 'Initial design', author: 'u4', date: '2026-03-28', additions: 167, deletions: 0 },
-      { id: 'v2', label: 'Added audit logging', author: 'u1', date: '2026-04-02', additions: 45, deletions: 8 }
+      { id: 'v1a', label: 'Initial proposal', author: 'u1', date: '2026-04-08', additions: 574, deletions: 0 }
     ],
     comments: [],
-    reviews: [
-      { reviewer: 'u1', status: 'approved', date: '2026-04-03', comment: 'Clean design. Aligns with our RLS architecture.' },
-      { reviewer: 'u2', status: 'approved', date: '2026-04-04', comment: 'Approved.' }
-    ]
-  },
-  {
-    id: 'd5', title: 'Database Migration: Datasource v2', type: 'hld', status: 'draft',
-    description: 'Schema migration plan for datasource service v2 with multi-tenant partitioning and connection pooling.',
-    content: '<h1>Database Migration: Datasource v2</h1><h2>1. Summary</h2><p>Migrate the datasource service to v2 schema with improved multi-tenant partitioning, connection pooling, and query caching.</p><h2>2. Schema Changes</h2><p>New tables: datasource_pool, query_cache, tenant_partition. Modified: datasource (add pool_id, partition_key columns).</p><h2>3. Data Migration</h2><p>Backfill partition_key from tenant_id. Initialize pool configurations from existing connection strings.</p><h2>4. Rollback Plan</h2><p>Flyway undo migrations provided. Feature flag controls v2 code paths.</p>',
-    tags: ['t4', 't7'], author: 'u3', collaborators: ['u1'],
-    createdAt: '2026-04-06', updatedAt: '2026-04-07',
-    versions: [
-      { id: 'v1', label: 'Draft', author: 'u3', date: '2026-04-06', additions: 134, deletions: 0 }
-    ],
-    comments: [
-      { id: 'c6', author: 'u1', text: 'Let us make sure Flyway handles this on startup per our convention.', date: '2026-04-07', resolved: false, replies: [] }
-    ],
     reviews: []
   },
   {
-    id: 'd6', title: 'TSC-2026-03: Container Registry Strategy', type: 'tsc', status: 'approved',
-    description: 'Decision to use a lightweight registry:2 instance for agent app builds instead of GHCR for internal images.',
-    content: '<h1>TSC-2026-03: Container Registry Strategy</h1><h2>Status</h2><p><strong>Accepted</strong></p><h2>Context</h2><p>Agent apps need fast image builds and pulls within the cluster. GHCR adds latency and requires external network access from build nodes.</p><h2>Decision</h2><p>Deploy a lightweight Docker registry:2 at docker-registry:5000 for internal agent app images. GHCR remains for public/shared images.</p><h2>Consequences</h2><p>Build times reduced significantly. No external dependency for agent app deployments. Images are ephemeral and rebuilt from source.</p>',
-    tags: ['t6', 't1'], author: 'u1', collaborators: ['u2'],
-    createdAt: '2026-03-18', updatedAt: '2026-03-22',
+    id: 'd2', title: 'NESIFY Database Schema Design', type: 'db', status: 'review',
+    description: 'Comprehensive database schema for the NESIFY system -- tracking NES projects from PURL intake through forking, building, patching, publishing, and security fix management.',
+    content: dbSchemaContent,
+    tags: ['t4', 't1', 't7'], author: 'u1', collaborators: [],
+    createdAt: '2026-04-08', updatedAt: '2026-04-08',
+    relatedDocs: ['d1'],
     versions: [
-      { id: 'v1', label: 'Proposal', author: 'u1', date: '2026-03-18', additions: 98, deletions: 0 },
-      { id: 'v2', label: 'Accepted', author: 'u1', date: '2026-03-22', additions: 12, deletions: 5 }
-    ],
-    comments: [],
-    reviews: [
-      { reviewer: 'u2', status: 'approved', date: '2026-03-21', comment: 'Makes sense for our use case.' },
-      { reviewer: 'u4', status: 'approved', date: '2026-03-22', comment: 'Agreed.' }
-    ]
-  },
-  {
-    id: 'd7', title: 'Search Pipeline Architecture', type: 'hld', status: 'review',
-    description: 'Design for the full-text search pipeline using Elasticsearch with tenant-scoped indices and real-time indexing.',
-    content: '<h1>Search Pipeline Architecture</h1><h2>1. Overview</h2><p>The search pipeline provides full-text search across all platform entities with tenant isolation, faceted filtering, and real-time index updates.</p><h2>2. Components</h2><ul><li><strong>Indexer</strong> - Listens to domain events and updates search indices</li><li><strong>Query Service</strong> - Handles search requests with tenant-scoped queries</li><li><strong>Index Manager</strong> - Manages index lifecycle, mappings, and aliases</li></ul><h2>3. Tenant Isolation</h2><p>Each tenant gets a dedicated index alias. All queries are filtered by tenant_id. Index-level security prevents cross-tenant access.</p>',
-    tags: ['t1', 't3'], author: 'u4', collaborators: ['u1', 'u3'],
-    createdAt: '2026-04-02', updatedAt: '2026-04-08',
-    versions: [
-      { id: 'v1', label: 'Initial design', author: 'u4', date: '2026-04-02', additions: 210, deletions: 0 },
-      { id: 'v2', label: 'Added tenant isolation', author: 'u1', date: '2026-04-07', additions: 78, deletions: 15 }
-    ],
-    comments: [
-      { id: 'c7', author: 'u2', text: 'Should we include a relevance scoring customization section?', date: '2026-04-08', resolved: false, replies: [] }
-    ],
-    reviews: [
-      { reviewer: 'u2', status: 'pending', date: null, comment: null },
-      { reviewer: 'u5', status: 'approved', date: '2026-04-08', comment: 'Index strategy looks correct.' }
-    ]
-  },
-  {
-    id: 'd8', title: 'MCP Gateway Registry Design', type: 'hld', status: 'draft',
-    description: 'Design for the MCP Gateway Registry that manages tool discovery, routing, and version resolution.',
-    content: '<h1>MCP Gateway Registry Design</h1><h2>1. Overview</h2><p>The MCP Gateway Registry is a central catalog of all available MCP tools, their capabilities, versions, and access policies. It enables dynamic tool discovery and intelligent routing.</p><h2>2. Registry Model</h2><p>Each tool registration includes: name, version, schema (JSON Schema), transport config, auth requirements, and tenant visibility.</p><h2>3. Discovery API</h2><p>Agents query the registry to discover available tools matching their needs. Results are filtered by tenant permissions and tool capabilities.</p>',
-    tags: ['t1', 't5', 't6'], author: 'u1', collaborators: ['u2', 'u3', 'u4'],
-    createdAt: '2026-04-07', updatedAt: '2026-04-08',
-    versions: [
-      { id: 'v1', label: 'Initial draft', author: 'u1', date: '2026-04-07', additions: 156, deletions: 0 }
+      { id: 'v2a', label: 'Initial schema design', author: 'u1', date: '2026-04-08', additions: 892, deletions: 0 }
     ],
     comments: [],
     reviews: []
@@ -1542,143 +2268,16 @@ const defaultDocuments = [
 const defaultSchemas = [
   {
     id: 'schema1',
-    name: 'HLD Review App Schema',
-    schema: `erDiagram
-    DOCUMENTS {
-        uuid id PK
-        varchar title
-        text content
-        varchar type
-        varchar status
-        uuid author_id FK
-        uuid template_id FK
-        jsonb metadata
-        timestamp created_at
-        timestamp updated_at
-    }
-    DOCUMENT_VERSIONS {
-        uuid id PK
-        uuid document_id FK
-        int version_number
-        text content
-        varchar label
-        uuid author_id FK
-        int additions
-        int deletions
-        timestamp created_at
-    }
-    TEMPLATES {
-        uuid id PK
-        varchar name
-        varchar type
-        text description
-        text content
-        int used_count
-        uuid created_by FK
-        timestamp created_at
-    }
-    COMMENTS {
-        uuid id PK
-        uuid document_id FK
-        uuid parent_id FK
-        uuid author_id FK
-        text body
-        boolean resolved
-        timestamp created_at
-    }
-    REVIEWS {
-        uuid id PK
-        uuid document_id FK
-        uuid reviewer_id FK
-        varchar status
-        text comment
-        timestamp reviewed_at
-    }
-    USERS {
-        uuid id PK
-        varchar name
-        varchar email
-        varchar role
-        varchar avatar_color
-        timestamp created_at
-    }
-    TAGS {
-        uuid id PK
-        varchar name
-        varchar color
-    }
-    DOCUMENT_TAGS {
-        uuid document_id FK
-        uuid tag_id FK
-    }
-    DB_SCHEMAS {
-        uuid id PK
-        varchar name
-        text definition
-        uuid document_id FK
-        timestamp created_at
-    }
-
-    USERS ||--o{ DOCUMENTS : authors
-    DOCUMENTS ||--o{ DOCUMENT_VERSIONS : has
-    TEMPLATES ||--o{ DOCUMENTS : creates
-    DOCUMENTS ||--o{ COMMENTS : has
-    COMMENTS ||--o{ COMMENTS : replies
-    USERS ||--o{ COMMENTS : writes
-    DOCUMENTS ||--o{ REVIEWS : has
-    USERS ||--o{ REVIEWS : reviews
-    DOCUMENTS ||--o{ DOCUMENT_TAGS : has
-    TAGS ||--o{ DOCUMENT_TAGS : tagged
-    DOCUMENTS ||--o{ DB_SCHEMAS : contains`
-  },
-  {
-    id: 'schema2',
-    name: 'Agent Platform Schema',
-    schema: `erDiagram
-    AGENTS {
-        uuid id PK
-        varchar name
-        varchar status
-        uuid tenant_id FK
-        jsonb capabilities
-        timestamp created_at
-    }
-    EXECUTIONS {
-        uuid id PK
-        uuid agent_id FK
-        varchar status
-        jsonb input
-        jsonb output
-        timestamp started_at
-        timestamp completed_at
-    }
-    TASKS {
-        uuid id PK
-        uuid execution_id FK
-        varchar type
-        varchar status
-        jsonb payload
-        timestamp created_at
-    }
-    AUDIT_LOG {
-        uuid id PK
-        uuid agent_id FK
-        varchar action
-        jsonb details
-        timestamp created_at
-    }
-    TENANTS {
-        uuid id PK
-        varchar name
-        varchar plan
-        timestamp created_at
-    }
-
-    TENANTS ||--o{ AGENTS : owns
-    AGENTS ||--o{ EXECUTIONS : runs
-    EXECUTIONS ||--o{ TASKS : contains
-    AGENTS ||--o{ AUDIT_LOG : logged`
+    name: 'NESIFY Schema (from SCHEMA.md)',
+    schema: nesifyErDiagram
   }
+];
+
+// Table names extracted from schema for commenting
+const schemaTables = [
+  'project', 'project_artifact', 'package_version', 'project_stage',
+  'workflow_run', 'security_fix', 'security_fix_file',
+  'workflow_registry', 'workflow_execution_log'
 ];
 
 // ============================================================
@@ -1687,14 +2286,14 @@ const defaultSchemas = [
 class Store {
   constructor() {
     this.data = this.load();
+    this.tableComments = this.loadTableComments();
   }
 
   load() {
     try {
-      const saved = localStorage.getItem('hld-tsc-store');
+      const saved = localStorage.getItem('hld-tsc-store-v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Migration: ensure all fields exist
         if (!parsed.schemas) parsed.schemas = defaultSchemas;
         return parsed;
       }
@@ -1710,7 +2309,48 @@ class Store {
   }
 
   save() {
-    try { localStorage.setItem('hld-tsc-store', JSON.stringify(this.data)); } catch(e) {}
+    try { localStorage.setItem('hld-tsc-store-v2', JSON.stringify(this.data)); } catch(e) {}
+  }
+
+  loadTableComments() {
+    try {
+      const saved = localStorage.getItem('hld-tsc-table-comments');
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return {};
+  }
+
+  saveTableComments() {
+    try { localStorage.setItem('hld-tsc-table-comments', JSON.stringify(this.tableComments)); } catch(e) {}
+  }
+
+  getTableComments(tableName) {
+    return this.tableComments[tableName] || [];
+  }
+
+  addTableComment(tableName, comment) {
+    if (!this.tableComments[tableName]) this.tableComments[tableName] = [];
+    this.tableComments[tableName].push(comment);
+    this.saveTableComments();
+  }
+
+  addTableCommentReply(tableName, commentId, reply) {
+    const comments = this.tableComments[tableName] || [];
+    const comment = comments.find(c => c.id === commentId);
+    if (comment) {
+      if (!comment.replies) comment.replies = [];
+      comment.replies.push(reply);
+      this.saveTableComments();
+    }
+  }
+
+  getTableCommentCount(tableName) {
+    const comments = this.tableComments[tableName] || [];
+    return comments.length;
+  }
+
+  getTotalTableComments() {
+    return Object.values(this.tableComments).reduce((sum, arr) => sum + arr.length, 0);
   }
 
   getUser(id) { return this.data.users.find(u => u.id === id) || this.data.users[0]; }
@@ -1778,7 +2418,6 @@ class Store {
       } else {
         doc.reviews.push(review);
       }
-      // Auto-advance status
       const allApproved = doc.reviews.length >= 2 && doc.reviews.every(r => r.status === 'approved');
       if (allApproved) doc.status = 'approved';
       else if (doc.reviews.some(r => r.status !== 'pending')) doc.status = 'review';
@@ -1810,14 +2449,11 @@ function navigate(page, docId) {
   currentPage = page;
   currentDocId = docId || null;
 
-  // Update nav active state
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.page === page);
   });
 
-  // Close mobile sidebar
   closeSidebar();
-
   renderPage();
 }
 
@@ -1839,7 +2475,6 @@ function renderPage() {
   const title = document.getElementById('pageTitle');
   const actions = document.getElementById('topbarActions');
 
-  // Update counts
   document.getElementById('docCount').textContent = store.getDocuments().length;
   const pendingReviews = store.getDocuments().filter(d => d.status === 'review').length;
   document.getElementById('reviewCount').textContent = pendingReviews;
@@ -1873,13 +2508,7 @@ function renderDashboard(content, title, actions) {
   const recentDocs = [...docs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
 
   const activities = [
-    { user: 'u2', text: '<strong>Sarah Chen</strong> approved <strong>NES Service Project Template</strong>', time: '1 hour ago' },
-    { user: 'u4', text: '<strong>Priya Sharma</strong> requested changes on <strong>NES Service Project Template</strong>', time: '3 hours ago' },
-    { user: 'u2', text: '<strong>Sarah Chen</strong> approved <strong>Agent Executor Platform HLD</strong>', time: '5 hours ago' },
-    { user: 'u4', text: '<strong>Priya Sharma</strong> requested changes on <strong>Channel Messaging System</strong>', time: '8 hours ago' },
-    { user: 'u1', text: '<strong>Ryan Murphy</strong> created <strong>MCP Gateway Registry Design</strong>', time: '1 day ago' },
-    { user: 'u5', text: '<strong>Alex Kim</strong> commented on <strong>Search Pipeline Architecture</strong>', time: '1 day ago' },
-    { user: 'u3', text: '<strong>Jake Torres</strong> submitted <strong>Database Migration: Datasource v2</strong> for review', time: '2 days ago' },
+    { user: 'u1', text: '<strong>Ryan Murphy</strong> created <strong>api2 -- Workflow Registry API</strong> and <strong>NESIFY Database Schema Design</strong>', time: 'Today' },
   ];
 
   content.innerHTML = `
@@ -1912,9 +2541,12 @@ function renderDashboard(content, title, actions) {
           <div class="recent-docs">
             ${recentDocs.map(d => {
               const author = store.getUser(d.author);
+              const iconClass = d.type === 'db' ? 'db' : d.type === 'tsc' ? 'tsc' : 'hld';
               return `<div class="doc-row" onclick="navigate('editor','${d.id}')">
-                <div class="doc-icon ${d.type}">
-                  ${d.type === 'hld' ?
+                <div class="doc-icon ${iconClass}">
+                  ${d.type === 'db' ?
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' :
+                  d.type === 'hld' ?
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
                   }
@@ -1967,7 +2599,7 @@ function renderDocuments(content, title, actions) {
   if (docFilter !== 'all') {
     if (['draft','review','approved','archived'].includes(docFilter)) {
       docs = docs.filter(d => d.status === docFilter);
-    } else if (docFilter === 'hld' || docFilter === 'tsc') {
+    } else if (docFilter === 'hld' || docFilter === 'tsc' || docFilter === 'db') {
       docs = docs.filter(d => d.type === docFilter);
     }
   }
@@ -1983,8 +2615,8 @@ function renderDocuments(content, title, actions) {
       <input type="search" placeholder="Search documents..." value="${docSearch}" oninput="docSearch=this.value;renderPage()">
     </div>
     <div class="doc-filters">
-      ${['all','draft','review','approved','hld','tsc'].map(f =>
-        `<div class="filter-chip ${docFilter===f?'active':''}" onclick="docFilter='${f}';renderPage()">${f==='all'?'All':f==='hld'?'HLD':f==='tsc'?'TSC':f.charAt(0).toUpperCase()+f.slice(1)}</div>`
+      ${['all','draft','review','approved','hld','db'].map(f =>
+        `<div class="filter-chip ${docFilter===f?'active':''}" onclick="docFilter='${f}';renderPage()">${f==='all'?'All':f==='hld'?'HLD':f==='tsc'?'TSC':f==='db'?'Database':f.charAt(0).toUpperCase()+f.slice(1)}</div>`
       ).join('')}
     </div>
     <div class="doc-list">
@@ -1992,9 +2624,12 @@ function renderDocuments(content, title, actions) {
         docs.map(d => {
           const author = store.getUser(d.author);
           const tags = d.tags.map(tid => store.getTag(tid)).filter(Boolean);
+          const iconClass = d.type === 'db' ? 'db' : d.type === 'tsc' ? 'tsc' : 'hld';
           return `<div class="card card-clickable doc-card" onclick="navigate('editor','${d.id}')">
-            <div class="doc-icon ${d.type}" style="align-self:flex-start">
-              ${d.type === 'hld' ?
+            <div class="doc-icon ${iconClass}" style="align-self:flex-start">
+              ${d.type === 'db' ?
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' :
+              d.type === 'hld' ?
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
               }
@@ -2050,7 +2685,6 @@ function renderEditor(content, title, actions) {
           <div class="divider"></div>
           <button class="btn-icon" onclick="execCmd('insertUnorderedList')" title="Bullet List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
           <button class="btn-icon" onclick="execCmd('insertOrderedList')" title="Ordered List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></button>
-          <button class="btn-icon" onclick="execCmd('formatBlock','<blockquote>')" title="Quote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg></button>
           <div class="divider"></div>
           <button class="btn btn-sm btn-secondary" onclick="saveDocument()" style="margin-left:auto">Save</button>
           ${doc.status === 'draft' ? `<button class="btn btn-sm btn-primary" onclick="submitForReview('${doc.id}')">Submit for Review</button>` : ''}
@@ -2138,6 +2772,7 @@ function renderEditorSidebar() {
     `;
   } else if (editorSidebarTab === 'review') {
     const reviews = doc.reviews || [];
+    const relatedDocs = (doc.relatedDocs || []).map(id => store.getDocument(id)).filter(Boolean);
     container.innerHTML = `
       <div class="review-info-section">
         <h4>Status</h4>
@@ -2156,10 +2791,20 @@ function renderEditorSidebar() {
         }).join('')}
         ${reviews.length === 0 ? '<div style="font-size:12px;color:var(--text-muted)">No reviewers assigned yet.</div>' : ''}
       </div>
-      <div class="review-info-section">
+      ${relatedDocs.length > 0 ? `
+      <div class="related-docs">
+        <h4>Related Documents</h4>
+        ${relatedDocs.map(rd => `
+          <div class="related-doc-link" onclick="navigate('editor','${rd.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            ${escapeHtml(rd.title)}
+          </div>
+        `).join('')}
+      </div>` : ''}
+      <div class="review-info-section" style="margin-top:12px">
         <h4>Document Info</h4>
         <div style="font-size:12px;color:var(--text-secondary);line-height:2">
-          <div><strong>Type:</strong> ${doc.type.toUpperCase()}</div>
+          <div><strong>Type:</strong> ${doc.type === 'db' ? 'Database Design' : doc.type.toUpperCase()}</div>
           <div><strong>Author:</strong> ${store.getUser(doc.author).name}</div>
           <div><strong>Created:</strong> ${formatDate(doc.createdAt)}</div>
           <div><strong>Updated:</strong> ${formatDate(doc.updatedAt)}</div>
@@ -2210,8 +2855,6 @@ function saveDocument(silent) {
 
 function submitForReview(docId) {
   store.updateDocument(docId, { status: 'review', updatedAt: today() });
-  store.addReview(docId, { reviewer: 'u2', status: 'pending', date: null, comment: null });
-  store.addReview(docId, { reviewer: 'u4', status: 'pending', date: null, comment: null });
   showToast('Submitted for review', 'success');
   renderPage();
 }
@@ -2310,6 +2953,7 @@ function createFromTemplate(templateId) {
     collaborators: [],
     createdAt: today(),
     updatedAt: today(),
+    relatedDocs: [],
     versions: [{ id: store.generateId(), label: 'Created from template', author: user.id, date: today(), additions: 100, deletions: 0 }],
     comments: [],
     reviews: []
@@ -2367,9 +3011,13 @@ function renderReviewCard(d) {
     return `<span class="reviewer-status ${r.status}" style="font-size:11px">${rev.initials}: ${r.status}</span>`;
   }).join(' &middot; ');
 
+  const iconClass = d.type === 'db' ? 'db' : d.type === 'tsc' ? 'tsc' : 'hld';
+
   return `<div class="card card-clickable review-card" onclick="navigate('editor','${d.id}')">
-    <div class="doc-icon ${d.type}" style="align-self:flex-start">
-      ${d.type === 'hld' ?
+    <div class="doc-icon ${iconClass}" style="align-self:flex-start">
+      ${d.type === 'db' ?
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' :
+      d.type === 'hld' ?
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
       }
@@ -2377,7 +3025,7 @@ function renderReviewCard(d) {
     <div class="review-card-body">
       <div class="review-card-title">${escapeHtml(d.title)}</div>
       <div class="review-card-meta">
-        ${author.name} &middot; ${formatDate(d.updatedAt)} &middot; ${reviewers}
+        ${author.name} &middot; ${formatDate(d.updatedAt)} ${reviewers ? '&middot; ' + reviewers : ''}
       </div>
     </div>
     <span class="badge-status badge-${d.status}">${d.status}</span>
@@ -2385,7 +3033,8 @@ function renderReviewCard(d) {
 }
 
 // ---- DB VISUALIZER ----
-let currentSchemaText = '';
+let currentSchemaText = nesifyErDiagram;
+let tableCommentPanelTable = null;
 
 function renderVisualizer(content, title, actions) {
   title.textContent = 'DB Visualizer';
@@ -2395,10 +3044,27 @@ function renderVisualizer(content, title, actions) {
 
   content.innerHTML = `
     <div class="visualizer-layout">
-      <div class="schema-examples">
-        <span style="font-size:12px;color:var(--text-muted);align-self:center">Load example:</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:12px;color:var(--text-muted)">Load schema:</span>
         ${schemas.map(s => `<button class="btn btn-secondary btn-sm" onclick="loadSchema('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
       </div>
+
+      <div style="margin-bottom:4px">
+        <div class="section-header">
+          <h3>Tables (click to comment)</h3>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${schemaTables.map(t => {
+            const count = store.getTableCommentCount(t);
+            return `<button class="btn btn-secondary btn-sm" onclick="openTableCommentPanel('${t}')" style="position:relative">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              ${t}
+              ${count > 0 ? `<span style="background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px">${count}</span>` : ''}
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
+
       <div class="schema-input-area">
         <div class="schema-input-header">
           <h4>Mermaid ER Diagram</h4>
@@ -2407,31 +3073,15 @@ function renderVisualizer(content, title, actions) {
             Render
           </button>
         </div>
-        <textarea class="schema-textarea" id="schemaInput" placeholder="Enter Mermaid ER diagram syntax...
-
-Example:
-erDiagram
-    USERS {
-        uuid id PK
-        varchar name
-    }
-    POSTS {
-        uuid id PK
-        uuid author_id FK
-        text content
-    }
-    USERS ||--o{ POSTS : writes">${currentSchemaText}</textarea>
+        <textarea class="schema-textarea" id="schemaInput" placeholder="Enter Mermaid ER diagram syntax...">${currentSchemaText}</textarea>
       </div>
       <div class="diagram-output" id="diagramOutput">
-        <div style="color:var(--text-muted);font-size:13px">Enter a Mermaid ER diagram above and click Render</div>
+        <div style="color:var(--text-muted);font-size:13px">Loading diagram...</div>
       </div>
     </div>
   `;
 
-  // Auto-render if there's content
-  if (currentSchemaText) {
-    setTimeout(() => renderDiagram(), 100);
-  }
+  setTimeout(() => renderDiagram(), 100);
 }
 
 function loadSchema(schemaId) {
@@ -2454,7 +3104,8 @@ function renderDiagram() {
     return;
   }
 
-  output.innerHTML = '<div class="mermaid">' + currentSchemaText + '</div>';
+  const uniqueId = 'mermaid-' + Date.now();
+  output.innerHTML = '<div class="mermaid" id="' + uniqueId + '">' + currentSchemaText + '</div>';
 
   try {
     mermaid.initialize({
@@ -2469,10 +3120,136 @@ function renderDiagram() {
         tertiaryColor: '#1e2538'
       }
     });
-    mermaid.run({ querySelector: '#diagramOutput .mermaid' });
+    mermaid.run({ querySelector: '#' + uniqueId });
   } catch(e) {
     output.innerHTML = `<div style="color:var(--danger);font-size:13px">Error rendering diagram: ${escapeHtml(e.message)}</div>`;
   }
+}
+
+// ---- TABLE COMMENT PANEL ----
+function openTableCommentPanel(tableName) {
+  tableCommentPanelTable = tableName;
+  renderTableCommentPanel();
+}
+
+function closeTableCommentPanel() {
+  tableCommentPanelTable = null;
+  const overlay = document.getElementById('tableCommentOverlay');
+  const panel = document.getElementById('tableCommentPanel');
+  if (overlay) overlay.remove();
+  if (panel) panel.remove();
+}
+
+function renderTableCommentPanel() {
+  closeTableCommentPanel();
+  if (!tableCommentPanelTable) return;
+
+  const tableName = tableCommentPanelTable;
+  const comments = store.getTableComments(tableName);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'table-comment-panel-overlay';
+  overlay.id = 'tableCommentOverlay';
+  overlay.onclick = closeTableCommentPanel;
+  document.body.appendChild(overlay);
+
+  const panel = document.createElement('div');
+  panel.className = 'table-comment-panel';
+  panel.id = 'tableCommentPanel';
+  panel.innerHTML = `
+    <div class="table-comment-panel-header">
+      <h3>Comments on <code>${tableName}</code></h3>
+      <button class="btn-icon" onclick="closeTableCommentPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="table-comment-panel-body" id="tableCommentBody">
+      ${comments.length === 0 ? '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">No comments yet on this table.</div>' :
+        comments.map(c => `
+          <div class="comment-thread" style="margin-bottom:12px">
+            <div class="comment">
+              <div class="comment-header">
+                <div class="comment-avatar" style="background:var(--accent);">${(c.author || 'R')[0].toUpperCase()}</div>
+                <span class="comment-author">${escapeHtml(c.author || 'Ryan')}</span>
+                <span class="comment-time">${formatDate(c.date)}</span>
+              </div>
+              <div class="comment-body">${escapeHtml(c.text)}</div>
+              <div class="comment-actions">
+                <button class="comment-action" onclick="showTableReplyInput('${c.id}')">Reply</button>
+              </div>
+            </div>
+            ${(c.replies||[]).map(r => `
+              <div class="comment comment-reply">
+                <div class="comment-header">
+                  <div class="comment-avatar" style="background:var(--purple);">${(r.author || 'R')[0].toUpperCase()}</div>
+                  <span class="comment-author">${escapeHtml(r.author || 'Ryan')}</span>
+                  <span class="comment-time">${formatDate(r.date)}</span>
+                </div>
+                <div class="comment-body">${escapeHtml(r.text)}</div>
+              </div>
+            `).join('')}
+            <div id="table-reply-${c.id}" style="display:none;margin-left:16px;margin-top:6px">
+              <textarea id="table-reply-text-${c.id}" placeholder="Write a reply..." rows="2" style="width:100%;font-size:12px"></textarea>
+              <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
+                <input type="text" id="table-reply-author-${c.id}" placeholder="Your name" value="Ryan" style="flex:1;font-size:12px;padding:4px 8px">
+                <button class="btn btn-primary btn-sm" onclick="addTableCommentReply('${tableName}','${c.id}')">Reply</button>
+              </div>
+            </div>
+          </div>
+        `).join('')
+      }
+    </div>
+    <div class="table-comment-panel-footer">
+      <textarea id="tableCommentText" placeholder="Add a comment about the ${tableName} table..." rows="3"></textarea>
+      <div class="footer-row">
+        <input type="text" id="tableCommentAuthor" placeholder="Your name" value="Ryan">
+        <button class="btn btn-primary btn-sm" onclick="addTableCommentFromPanel('${tableName}')">Comment</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(panel);
+}
+
+function showTableReplyInput(commentId) {
+  const el = document.getElementById('table-reply-' + commentId);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function addTableCommentFromPanel(tableName) {
+  const textarea = document.getElementById('tableCommentText');
+  const authorInput = document.getElementById('tableCommentAuthor');
+  if (!textarea || !textarea.value.trim()) return;
+
+  store.addTableComment(tableName, {
+    id: store.generateId(),
+    author: (authorInput && authorInput.value.trim()) || 'Ryan',
+    text: textarea.value.trim(),
+    date: today(),
+    replies: []
+  });
+
+  renderTableCommentPanel();
+  // Re-render the visualizer page to update badge counts
+  if (currentPage === 'visualizer') {
+    // Just update the table buttons area
+    const btns = document.querySelectorAll('.visualizer-layout .btn.btn-secondary');
+    // Simpler: just re-render
+  }
+}
+
+function addTableCommentReply(tableName, commentId) {
+  const textarea = document.getElementById('table-reply-text-' + commentId);
+  const authorInput = document.getElementById('table-reply-author-' + commentId);
+  if (!textarea || !textarea.value.trim()) return;
+
+  store.addTableCommentReply(tableName, commentId, {
+    id: store.generateId(),
+    author: (authorInput && authorInput.value.trim()) || 'Ryan',
+    text: textarea.value.trim(),
+    date: today()
+  });
+
+  renderTableCommentPanel();
 }
 
 // ---- FEATURES ----
@@ -2494,75 +3271,10 @@ function renderFeatures(content, title, actions) {
         <ul class="feature-list">
           <li class="done">Create, edit, and manage HLD documents with rich text editing</li>
           <li class="done">Full document CRUD with auto-save and draft support</li>
-          <li class="done">Document types: HLD (High-Level Design) and TSC (Technical Steering Committee)</li>
+          <li class="done">Document types: HLD, TSC, and Database Design</li>
           <li class="done">Search and filter documents by status, type, and tags</li>
-          <li class="done">Tags and categories for organizing documents</li>
-          <li class="done">Document metadata tracking (author, dates, collaborators)</li>
-          <li class="planned">Export to PDF, Markdown, and HTML</li>
-          <li class="planned">Document locking for concurrent edit protection</li>
-        </ul>
-      </div>
-
-      <div class="feature-group">
-        <h3 style="color:var(--purple)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-          Template System
-        </h3>
-        <ul class="feature-list">
-          <li class="done">Pre-built templates for HLD, TSC decisions, API specs, migrations, and more</li>
-          <li class="done">Create new documents from templates with one click</li>
-          <li class="done">Template usage tracking</li>
-          <li class="planned">Save any document as a template</li>
-          <li class="planned">Custom template creation and editing</li>
-          <li class="planned">Template versioning</li>
-        </ul>
-      </div>
-
-      <div class="feature-group">
-        <h3 style="color:var(--success)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Commenting & Collaboration
-        </h3>
-        <ul class="feature-list">
-          <li class="done">Threaded comments with replies</li>
-          <li class="done">Resolve and reopen comments</li>
-          <li class="done">User avatars and identity</li>
-          <li class="done">Activity feed showing recent actions</li>
-          <li class="planned">Inline comments anchored to specific text</li>
-          <li class="planned">@mentions and notifications</li>
-          <li class="planned">Real-time presence indicators (who is viewing)</li>
-          <li class="planned">Real-time collaborative editing</li>
-        </ul>
-      </div>
-
-      <div class="feature-group">
-        <h3 style="color:var(--warning)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          Review Workflow
-        </h3>
-        <ul class="feature-list">
-          <li class="done">Document lifecycle: Draft &rarr; In Review &rarr; Approved &rarr; Archived</li>
-          <li class="done">Per-reviewer status tracking (pending, approved, changes requested)</li>
-          <li class="done">Review comments and feedback</li>
-          <li class="done">Auto-approve when all reviewers approve</li>
-          <li class="planned">Configurable approval rules (e.g., require 2 of 3)</li>
-          <li class="planned">Review deadline reminders</li>
-          <li class="planned">Email/Slack notifications for review requests</li>
-        </ul>
-      </div>
-
-      <div class="feature-group">
-        <h3 style="color:var(--info)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Version History
-        </h3>
-        <ul class="feature-list">
-          <li class="done">Full version history with labels and timestamps</li>
-          <li class="done">Addition/deletion tracking per version</li>
-          <li class="done">Author attribution for each version</li>
-          <li class="planned">Visual diff view between versions</li>
-          <li class="planned">Restore previous versions</li>
-          <li class="planned">Branch and merge document versions</li>
+          <li class="done">Related document linking between proposals and schemas</li>
+          <li class="done">Real API2 proposal and DB schema loaded as default documents</li>
         </ul>
       </div>
 
@@ -2572,57 +3284,79 @@ function renderFeatures(content, title, actions) {
           Database Visualization
         </h3>
         <ul class="feature-list">
-          <li class="done">ER diagram rendering using Mermaid.js</li>
-          <li class="done">Pre-loaded example schemas</li>
+          <li class="done">ER diagram rendering from NESIFY SCHEMA.md using Mermaid.js</li>
+          <li class="done">9 tables extracted with full column definitions and relationships</li>
+          <li class="done">Per-table commenting with threaded replies</li>
+          <li class="done">Comment count badges on each table</li>
+          <li class="done">Slide-out comment panel with author and timestamp</li>
+          <li class="done">Comments persisted in localStorage</li>
           <li class="done">Interactive editor with live rendering</li>
-          <li class="done">Dark-themed diagram output</li>
-          <li class="planned">Import from SQL DDL statements</li>
-          <li class="planned">Embed diagrams within documents</li>
-          <li class="planned">Export diagrams as SVG/PNG</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--success)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Commenting & Collaboration
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Threaded comments with replies on documents</li>
+          <li class="done">Resolve and reopen comments</li>
+          <li class="done">Per-table commenting in DB Visualizer</li>
+          <li class="done">Activity feed showing recent actions</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--warning)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Review Workflow
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Document lifecycle: Draft, In Review, Approved, Archived</li>
+          <li class="done">Per-reviewer status tracking</li>
+          <li class="done">Review comments and feedback</li>
+          <li class="done">Auto-approve when all reviewers approve</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <h3 style="color:var(--purple)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          Template System
+        </h3>
+        <ul class="feature-list">
+          <li class="done">Pre-built templates for HLD, API specs, and migrations</li>
+          <li class="done">Create new documents from templates with one click</li>
+          <li class="done">Template usage tracking</li>
         </ul>
       </div>
 
       <div class="feature-group">
         <h3 style="color:var(--danger)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          Mobile-First Design
-        </h3>
-        <ul class="feature-list">
-          <li class="done">Responsive layout optimized for phone, tablet, and desktop</li>
-          <li class="done">Collapsible sidebar navigation with slide-in animation</li>
-          <li class="done">Touch-friendly controls and tap targets</li>
-          <li class="done">Horizontal scrolling for overflow content</li>
-          <li class="done">Professional dark theme with CSS custom properties</li>
-          <li class="done">Offline draft support via LocalStorage</li>
-          <li class="planned">PWA support with offline access</li>
-          <li class="planned">Pull-to-refresh and swipe gestures</li>
-        </ul>
-      </div>
-
-      <div class="feature-group">
-        <h3 style="color:var(--text-secondary)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
-          Platform & Infrastructure
+          Platform
         </h3>
         <ul class="feature-list">
           <li class="done">Single-file HTML deployment on nginx:alpine</li>
-          <li class="done">Tenant-private visibility on HeroDevs platform</li>
-          <li class="done">Auto-provisioned database via platform datasource API</li>
-          <li class="done">Health check endpoint for K8s readiness probes</li>
-          <li class="planned">Backend API integration for persistent storage</li>
-          <li class="planned">Authentication via platform SSO</li>
-          <li class="planned">Webhook integration for CI/CD events</li>
+          <li class="done">Responsive layout for phone, tablet, and desktop</li>
+          <li class="done">Professional dark theme</li>
+          <li class="done">Offline draft support via LocalStorage</li>
         </ul>
       </div>
     </div>
 
     <div style="margin-top:24px;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-      <h3 style="font-size:15px;margin-bottom:8px">Database Schema</h3>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">The application is designed with the following database schema. Visit the DB Visualizer to see the full ER diagram.</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
-        ${['documents','document_versions','templates','comments','reviews','users','tags','document_tags','db_schemas'].map(t =>
-          `<div style="padding:8px 12px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:12px;font-family:var(--font-mono);color:var(--accent)">${t}</div>`
-        ).join('')}
+      <h3 style="font-size:15px;margin-bottom:8px">NESIFY Database Tables</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">The schema includes ${schemaTables.length} tables. Visit the DB Visualizer to see the full ER diagram and add comments.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+        ${schemaTables.map(t => {
+          const count = store.getTableCommentCount(t);
+          return `<div style="padding:8px 12px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:12px;font-family:var(--font-mono);color:var(--accent);display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="navigate('visualizer')">
+            ${t}
+            ${count > 0 ? `<span style="background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center">${count}</span>` : ''}
+          </div>`;
+        }).join('')}
       </div>
     </div>
   `;
@@ -2654,6 +3388,7 @@ function showNewDocModal() {
             <select id="newDocType">
               <option value="hld">HLD - High-Level Design</option>
               <option value="tsc">TSC - Steering Committee</option>
+              <option value="db">Database Design</option>
             </select>
           </div>
         </div>
@@ -2708,6 +3443,7 @@ function createNewDoc() {
     collaborators: [],
     createdAt: today(),
     updatedAt: today(),
+    relatedDocs: [],
     versions: [{ id: store.generateId(), label: 'Initial draft', author: user.id, date: today(), additions: 50, deletions: 0 }],
     comments: [],
     reviews: []
