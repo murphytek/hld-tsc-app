@@ -1361,6 +1361,74 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* ============================================================
+   LOADING STATES
+   ============================================================ */
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 13px;
+  gap: 10px;
+}
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.skeleton-card {
+  height: 80px;
+  margin-bottom: 10px;
+}
+.skeleton-stat {
+  height: 70px;
+}
+.skeleton-line {
+  height: 14px;
+  margin-bottom: 8px;
+}
+.skeleton-line.short { width: 60%; }
+
+.error-banner {
+  background: var(--danger-bg);
+  border: 1px solid rgba(245, 86, 74, 0.3);
+  border-radius: var(--radius);
+  padding: 16px;
+  color: var(--danger);
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.error-banner svg { width: 20px; height: 20px; flex-shrink: 0; }
+.error-banner .retry-btn {
+  margin-left: auto;
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ============================================================
    PRINT STYLES
    ============================================================ */
 @media print {
@@ -1451,7 +1519,187 @@ input:focus, textarea:focus, select:focus {
 
 <script>
 // ============================================================
-// DATA STORE
+// DATABASE API LAYER
+// ============================================================
+const DB_ENDPOINT = 'https://hq.herodevs.dev/graphql';
+const DB_TOKEN = 'hdapp_14XB0jPjYLAiG59oHIP5c507SCpJJmMrQ2EdXaAaXHy6ZGr1';
+
+const DB = {
+  async query(sql) {
+    try {
+      const res = await fetch(DB_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + DB_TOKEN
+        },
+        body: JSON.stringify({
+          query: `mutation { datasourceMutations { query(sql: ${JSON.stringify(sql)}) { columns rows } } }`
+        })
+      });
+      const json = await res.json();
+      if (json.errors) throw new Error(json.errors[0].message);
+      const result = json.data.datasourceMutations.query;
+      // Convert rows array-of-arrays to array-of-objects using columns
+      const cols = result.columns;
+      return result.rows.map(row => {
+        const obj = {};
+        cols.forEach((col, i) => { obj[col] = row[i]; });
+        return obj;
+      });
+    } catch (e) {
+      console.error('DB.query error:', e, 'SQL:', sql);
+      throw e;
+    }
+  },
+
+  async mutate(sql) {
+    try {
+      const res = await fetch(DB_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + DB_TOKEN
+        },
+        body: JSON.stringify({
+          query: `mutation { datasourceMutations { mutate(sql: ${JSON.stringify(sql)}) { rowsAffected } } }`
+        })
+      });
+      const json = await res.json();
+      if (json.errors) throw new Error(json.errors[0].message);
+      return json.data.datasourceMutations.mutate;
+    } catch (e) {
+      console.error('DB.mutate error:', e, 'SQL:', sql);
+      throw e;
+    }
+  },
+
+  escape(str) {
+    if (str === null || str === undefined) return 'NULL';
+    return String(str).replace(/'/g, "''");
+  },
+
+  // --- Document helpers ---
+  async getDocuments() {
+    return await DB.query("SELECT * FROM hld_documents ORDER BY updated_at DESC");
+  },
+
+  async getDocument(id) {
+    const rows = await DB.query(`SELECT * FROM hld_documents WHERE id = '${DB.escape(id)}'`);
+    return rows[0] || null;
+  },
+
+  async createDocument(doc) {
+    const tags = doc.tags ? `'${DB.escape(JSON.stringify(doc.tags))}'::jsonb` : "'[]'::jsonb";
+    const related = doc.related_doc_ids ? `'${DB.escape(JSON.stringify(doc.related_doc_ids))}'::jsonb` : "'[]'::jsonb";
+    const sql = `INSERT INTO hld_documents (id, title, type, status, content, author, related_doc_ids, tags, created_at, updated_at) VALUES ('${DB.escape(doc.id)}', '${DB.escape(doc.title)}', '${DB.escape(doc.type)}', '${DB.escape(doc.status)}', '${DB.escape(doc.content)}', '${DB.escape(doc.author)}', ${related}, ${tags}, now(), now())`;
+    return await DB.mutate(sql);
+  },
+
+  async updateDocument(id, fields) {
+    const sets = [];
+    if (fields.title !== undefined) sets.push(`title = '${DB.escape(fields.title)}'`);
+    if (fields.type !== undefined) sets.push(`type = '${DB.escape(fields.type)}'`);
+    if (fields.status !== undefined) sets.push(`status = '${DB.escape(fields.status)}'`);
+    if (fields.content !== undefined) sets.push(`content = '${DB.escape(fields.content)}'`);
+    if (fields.author !== undefined) sets.push(`author = '${DB.escape(fields.author)}'`);
+    if (fields.tags !== undefined) sets.push(`tags = '${DB.escape(JSON.stringify(fields.tags))}'::jsonb`);
+    if (fields.related_doc_ids !== undefined) sets.push(`related_doc_ids = '${DB.escape(JSON.stringify(fields.related_doc_ids))}'::jsonb`);
+    sets.push("updated_at = now()");
+    if (sets.length === 1) return; // only updated_at
+    const sql = `UPDATE hld_documents SET ${sets.join(', ')} WHERE id = '${DB.escape(id)}'`;
+    return await DB.mutate(sql);
+  },
+
+  async deleteDocument(id) {
+    return await DB.mutate(`DELETE FROM hld_documents WHERE id = '${DB.escape(id)}'`);
+  },
+
+  // --- Version helpers ---
+  async getVersions(docId) {
+    return await DB.query(`SELECT * FROM hld_document_versions WHERE document_id = '${DB.escape(docId)}' ORDER BY version_number ASC`);
+  },
+
+  async createVersion(docId, content, summary, author) {
+    const id = crypto.randomUUID();
+    // Get next version number
+    const existing = await DB.query(`SELECT COALESCE(MAX(version_number), 0) as max_v FROM hld_document_versions WHERE document_id = '${DB.escape(docId)}'`);
+    const nextVersion = (parseInt(existing[0]?.max_v) || 0) + 1;
+    const sql = `INSERT INTO hld_document_versions (id, document_id, version_number, content, change_summary, author, created_at) VALUES ('${DB.escape(id)}', '${DB.escape(docId)}', ${nextVersion}, '${DB.escape(content)}', '${DB.escape(summary || 'Updated')}', '${DB.escape(author || 'Ryan Murphy')}', now())`;
+    return await DB.mutate(sql);
+  },
+
+  // --- Comment helpers ---
+  async getComments(docId) {
+    return await DB.query(`SELECT * FROM hld_comments WHERE document_id = '${DB.escape(docId)}' AND table_name IS NULL ORDER BY created_at ASC`);
+  },
+
+  async getTableComments(tableName) {
+    return await DB.query(`SELECT * FROM hld_comments WHERE table_name = '${DB.escape(tableName)}' ORDER BY created_at ASC`);
+  },
+
+  async addComment(docId, tableName, parentId, author, text) {
+    const id = crypto.randomUUID();
+    const docVal = docId ? `'${DB.escape(docId)}'` : 'NULL';
+    const tableVal = tableName ? `'${DB.escape(tableName)}'` : 'NULL';
+    const parentVal = parentId ? `'${DB.escape(parentId)}'` : 'NULL';
+    const sql = `INSERT INTO hld_comments (id, document_id, table_name, parent_id, author, text, resolved, created_at) VALUES ('${DB.escape(id)}', ${docVal}, ${tableVal}, ${parentVal}, '${DB.escape(author)}', '${DB.escape(text)}', false, now())`;
+    await DB.mutate(sql);
+    return id;
+  },
+
+  async resolveComment(commentId, resolved) {
+    return await DB.mutate(`UPDATE hld_comments SET resolved = ${resolved} WHERE id = '${DB.escape(commentId)}'`);
+  },
+
+  // --- Review helpers ---
+  async getReviews(docId) {
+    return await DB.query(`SELECT * FROM hld_reviews WHERE document_id = '${DB.escape(docId)}' ORDER BY created_at ASC`);
+  },
+
+  async addReview(docId, reviewer, status, comment) {
+    const id = crypto.randomUUID();
+    const sql = `INSERT INTO hld_reviews (id, document_id, reviewer, status, comment, created_at, updated_at) VALUES ('${DB.escape(id)}', '${DB.escape(docId)}', '${DB.escape(reviewer)}', '${DB.escape(status)}', '${DB.escape(comment || '')}', now(), now())`;
+    return await DB.mutate(sql);
+  },
+
+  async updateReview(reviewId, status, comment) {
+    const sets = [`status = '${DB.escape(status)}'`, "updated_at = now()"];
+    if (comment !== undefined) sets.push(`comment = '${DB.escape(comment)}'`);
+    return await DB.mutate(`UPDATE hld_reviews SET ${sets.join(', ')} WHERE id = '${DB.escape(reviewId)}'`);
+  }
+};
+
+// ============================================================
+// IN-MEMORY CACHE
+// ============================================================
+const cache = {
+  documents: null,
+  versions: {},    // keyed by docId
+  comments: {},    // keyed by docId
+  tableComments: {}, // keyed by tableName
+  reviews: {},     // keyed by docId
+  loading: {},     // track loading states
+
+  invalidate(key, subKey) {
+    if (subKey) {
+      if (this[key]) delete this[key][subKey];
+    } else {
+      this[key] = null;
+    }
+  },
+
+  invalidateAll() {
+    this.documents = null;
+    this.versions = {};
+    this.comments = {};
+    this.tableComments = {};
+    this.reviews = {};
+  }
+};
+
+// ============================================================
+// DATA STORE (references, templates, tags -- kept local)
 // ============================================================
 const COLORS = ['#4c7bf5','#a78bfa','#3dd68c','#f5a623','#f5564a','#4cc9f0','#fb923c','#e879f9'];
 
@@ -2281,162 +2529,106 @@ const schemaTables = [
 ];
 
 // ============================================================
-// STATE MANAGEMENT
+// LOCAL STORE (users, tags, templates, schemas -- not in DB)
 // ============================================================
-class Store {
-  constructor() {
-    this.data = this.load();
-    this.tableComments = this.loadTableComments();
-  }
+const store = {
+  users: defaultUsers,
+  tags: defaultTags,
+  templates: defaultTemplates,
+  schemas: defaultSchemas,
+  currentUser: 'u1',
 
-  load() {
-    try {
-      const saved = localStorage.getItem('hld-tsc-store-v2');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!parsed.schemas) parsed.schemas = defaultSchemas;
-        return parsed;
-      }
-    } catch(e) {}
-    return {
-      users: defaultUsers,
-      tags: defaultTags,
-      templates: defaultTemplates,
-      documents: defaultDocuments,
-      schemas: defaultSchemas,
-      currentUser: 'u1'
-    };
-  }
+  getUser(id) { return this.users.find(u => u.id === id) || this.users[0]; },
+  getUserByName(name) { return this.users.find(u => u.name === name) || this.users[0]; },
+  getTag(id) { return this.tags.find(t => t.id === id); },
+  getTagByName(name) { return this.tags.find(t => t.name === name); },
+  getCurrentUser() { return this.getUser(this.currentUser); },
+  getTemplates() { return this.templates; },
+  getTemplate(id) { return this.templates.find(t => t.id === id); },
+  generateId() { return crypto.randomUUID(); }
+};
 
-  save() {
-    try { localStorage.setItem('hld-tsc-store-v2', JSON.stringify(this.data)); } catch(e) {}
-  }
-
-  loadTableComments() {
-    try {
-      const saved = localStorage.getItem('hld-tsc-table-comments');
-      if (saved) return JSON.parse(saved);
-    } catch(e) {}
-    return {};
-  }
-
-  saveTableComments() {
-    try { localStorage.setItem('hld-tsc-table-comments', JSON.stringify(this.tableComments)); } catch(e) {}
-  }
-
-  getTableComments(tableName) {
-    return this.tableComments[tableName] || [];
-  }
-
-  addTableComment(tableName, comment) {
-    if (!this.tableComments[tableName]) this.tableComments[tableName] = [];
-    this.tableComments[tableName].push(comment);
-    this.saveTableComments();
-  }
-
-  addTableCommentReply(tableName, commentId, reply) {
-    const comments = this.tableComments[tableName] || [];
-    const comment = comments.find(c => c.id === commentId);
-    if (comment) {
-      if (!comment.replies) comment.replies = [];
-      comment.replies.push(reply);
-      this.saveTableComments();
-    }
-  }
-
-  getTableCommentCount(tableName) {
-    const comments = this.tableComments[tableName] || [];
-    return comments.length;
-  }
-
-  getTotalTableComments() {
-    return Object.values(this.tableComments).reduce((sum, arr) => sum + arr.length, 0);
-  }
-
-  getUser(id) { return this.data.users.find(u => u.id === id) || this.data.users[0]; }
-  getTag(id) { return this.data.tags.find(t => t.id === id); }
-  getCurrentUser() { return this.getUser(this.data.currentUser); }
-  getDocuments() { return this.data.documents; }
-  getDocument(id) { return this.data.documents.find(d => d.id === id); }
-  getTemplates() { return this.data.templates; }
-  getTemplate(id) { return this.data.templates.find(t => t.id === id); }
-
-  addDocument(doc) {
-    this.data.documents.unshift(doc);
-    this.save();
-  }
-
-  updateDocument(id, updates) {
-    const idx = this.data.documents.findIndex(d => d.id === id);
-    if (idx >= 0) {
-      Object.assign(this.data.documents[idx], updates);
-      this.save();
-    }
-  }
-
-  deleteDocument(id) {
-    this.data.documents = this.data.documents.filter(d => d.id !== id);
-    this.save();
-  }
-
-  addComment(docId, comment) {
-    const doc = this.getDocument(docId);
-    if (doc) {
-      doc.comments.push(comment);
-      this.save();
-    }
-  }
-
-  addReply(docId, commentId, reply) {
-    const doc = this.getDocument(docId);
-    if (doc) {
-      const comment = doc.comments.find(c => c.id === commentId);
-      if (comment) {
-        comment.replies.push(reply);
-        this.save();
-      }
-    }
-  }
-
-  toggleResolve(docId, commentId) {
-    const doc = this.getDocument(docId);
-    if (doc) {
-      const comment = doc.comments.find(c => c.id === commentId);
-      if (comment) {
-        comment.resolved = !comment.resolved;
-        this.save();
-      }
-    }
-  }
-
-  addReview(docId, review) {
-    const doc = this.getDocument(docId);
-    if (doc) {
-      const existing = doc.reviews.findIndex(r => r.reviewer === review.reviewer);
-      if (existing >= 0) {
-        doc.reviews[existing] = review;
-      } else {
-        doc.reviews.push(review);
-      }
-      const allApproved = doc.reviews.length >= 2 && doc.reviews.every(r => r.status === 'approved');
-      if (allApproved) doc.status = 'approved';
-      else if (doc.reviews.some(r => r.status !== 'pending')) doc.status = 'review';
-      this.save();
-    }
-  }
-
-  addVersion(docId, version) {
-    const doc = this.getDocument(docId);
-    if (doc) {
-      doc.versions.push(version);
-      this.save();
-    }
-  }
-
-  generateId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+// ============================================================
+// ASYNC DATA LOADERS (with caching)
+// ============================================================
+async function loadDocuments(forceRefresh) {
+  if (cache.documents && !forceRefresh) return cache.documents;
+  const rows = await DB.getDocuments();
+  cache.documents = rows.map(normalizeDoc);
+  return cache.documents;
 }
 
-const store = new Store();
+async function loadDocument(id, forceRefresh) {
+  // Check cache first
+  if (!forceRefresh && cache.documents) {
+    const cached = cache.documents.find(d => d.id === id);
+    if (cached) return cached;
+  }
+  const row = await DB.getDocument(id);
+  if (!row) return null;
+  return normalizeDoc(row);
+}
+
+function normalizeDoc(row) {
+  let tags = [];
+  try { tags = typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []); } catch(e) {}
+  let relatedDocIds = [];
+  try { relatedDocIds = typeof row.related_doc_ids === 'string' ? JSON.parse(row.related_doc_ids) : (row.related_doc_ids || []); } catch(e) {}
+  return {
+    id: row.id,
+    title: row.title || '',
+    type: row.type || 'hld',
+    status: row.status || 'draft',
+    content: row.content || '',
+    author: row.author || 'Ryan Murphy',
+    tags: tags,
+    relatedDocs: relatedDocIds,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+async function loadVersions(docId, forceRefresh) {
+  if (cache.versions[docId] && !forceRefresh) return cache.versions[docId];
+  const rows = await DB.getVersions(docId);
+  cache.versions[docId] = rows;
+  return rows;
+}
+
+async function loadComments(docId, forceRefresh) {
+  if (cache.comments[docId] && !forceRefresh) return cache.comments[docId];
+  const rows = await DB.getComments(docId);
+  // Build threaded comments (parent + replies)
+  const topLevel = rows.filter(r => !r.parent_id);
+  const replies = rows.filter(r => r.parent_id);
+  const threaded = topLevel.map(c => ({
+    ...c,
+    resolved: c.resolved === true || c.resolved === 'true' || c.resolved === 't',
+    replies: replies.filter(r => r.parent_id === c.id)
+  }));
+  cache.comments[docId] = threaded;
+  return threaded;
+}
+
+async function loadTableComments(tableName, forceRefresh) {
+  if (cache.tableComments[tableName] && !forceRefresh) return cache.tableComments[tableName];
+  const rows = await DB.getTableComments(tableName);
+  const topLevel = rows.filter(r => !r.parent_id);
+  const replies = rows.filter(r => r.parent_id);
+  const threaded = topLevel.map(c => ({
+    ...c,
+    replies: replies.filter(r => r.parent_id === c.id)
+  }));
+  cache.tableComments[tableName] = threaded;
+  return threaded;
+}
+
+async function loadReviews(docId, forceRefresh) {
+  if (cache.reviews[docId] && !forceRefresh) return cache.reviews[docId];
+  const rows = await DB.getReviews(docId);
+  cache.reviews[docId] = rows;
+  return rows;
+}
 
 // ============================================================
 // NAVIGATION
@@ -2468,16 +2660,12 @@ function closeSidebar() {
 }
 
 // ============================================================
-// RENDERING
+// RENDERING (async, with loading states)
 // ============================================================
 function renderPage() {
   const content = document.getElementById('content');
   const title = document.getElementById('pageTitle');
   const actions = document.getElementById('topbarActions');
-
-  document.getElementById('docCount').textContent = store.getDocuments().length;
-  const pendingReviews = store.getDocuments().filter(d => d.status === 'review').length;
-  document.getElementById('reviewCount').textContent = pendingReviews;
 
   switch(currentPage) {
     case 'dashboard': renderDashboard(content, title, actions); break;
@@ -2491,6 +2679,27 @@ function renderPage() {
   }
 }
 
+function showLoading(container, message) {
+  container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div>${message || 'Loading...'}</div>`;
+}
+
+function showError(container, message, retryFn) {
+  container.innerHTML = `<div class="error-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    <span>${escapeHtml(message)}</span>
+    ${retryFn ? '<button class="retry-btn" onclick="' + retryFn + '">Retry</button>' : ''}
+  </div>`;
+}
+
+async function updateSidebarCounts() {
+  try {
+    const docs = await loadDocuments();
+    document.getElementById('docCount').textContent = docs.length;
+    const pendingReviews = docs.filter(d => d.status === 'review').length;
+    document.getElementById('reviewCount').textContent = pendingReviews;
+  } catch(e) { /* ignore */ }
+}
+
 // ---- DASHBOARD ----
 function renderDashboard(content, title, actions) {
   title.textContent = 'Dashboard';
@@ -2499,88 +2708,100 @@ function renderDashboard(content, title, actions) {
     New Doc
   </button>`;
 
-  const docs = store.getDocuments();
-  const approved = docs.filter(d => d.status === 'approved').length;
-  const inReview = docs.filter(d => d.status === 'review').length;
-  const drafts = docs.filter(d => d.status === 'draft').length;
-  const totalComments = docs.reduce((sum, d) => sum + d.comments.length, 0);
+  showLoading(content, 'Loading dashboard...');
 
-  const recentDocs = [...docs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
+  (async () => {
+    try {
+      const docs = await loadDocuments();
+      const approved = docs.filter(d => d.status === 'approved').length;
+      const inReview = docs.filter(d => d.status === 'review').length;
+      const drafts = docs.filter(d => d.status === 'draft').length;
 
-  const activities = [
-    { user: 'u1', text: '<strong>Ryan Murphy</strong> created <strong>api2 -- Workflow Registry API</strong> and <strong>NESIFY Database Schema Design</strong>', time: 'Today' },
-  ];
+      // Get total comment count from DB
+      let totalComments = 0;
+      try {
+        const countRows = await DB.query("SELECT COUNT(*) as cnt FROM hld_comments");
+        totalComments = parseInt(countRows[0]?.cnt) || 0;
+      } catch(e) {}
 
-  content.innerHTML = `
-    <div class="dashboard-grid">
-      <div>
-        <div class="stat-row">
-          <div class="stat-card">
-            <div class="stat-value" style="color:var(--accent)">${docs.length}</div>
-            <div class="stat-label">Total Docs</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" style="color:var(--success)">${approved}</div>
-            <div class="stat-label">Approved</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" style="color:var(--warning)">${inReview}</div>
-            <div class="stat-label">In Review</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" style="color:var(--info)">${totalComments}</div>
-            <div class="stat-label">Comments</div>
-          </div>
-        </div>
+      await updateSidebarCounts();
 
-        <div style="margin-top:20px">
-          <div class="section-header">
-            <h3>Recent Documents</h3>
-            <button class="btn btn-ghost btn-sm" onclick="navigate('documents')">View All</button>
-          </div>
-          <div class="recent-docs">
-            ${recentDocs.map(d => {
-              const author = store.getUser(d.author);
-              const iconClass = d.type === 'db' ? 'db' : d.type === 'tsc' ? 'tsc' : 'hld';
-              return `<div class="doc-row" onclick="navigate('editor','${d.id}')">
-                <div class="doc-icon ${iconClass}">
-                  ${d.type === 'db' ?
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' :
-                  d.type === 'hld' ?
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
-                  }
-                </div>
-                <div class="doc-row-info">
-                  <div class="doc-name">${d.title}</div>
-                  <div class="doc-meta">${author.name} &middot; Updated ${formatDate(d.updatedAt)}</div>
-                </div>
-                <span class="badge-status badge-${d.status}">${d.status}</span>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-      </div>
+      const recentDocs = [...docs].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0, 5);
 
-      <div>
-        <div class="section-header">
-          <h3>Activity</h3>
-        </div>
-        <div class="activity-feed">
-          ${activities.map(a => {
-            const user = store.getUser(a.user);
-            return `<div class="activity-item">
-              <div class="activity-avatar" style="background:${user.color}">${user.initials}</div>
-              <div class="activity-content">
-                <div class="activity-text">${a.text}</div>
-                <div class="activity-time">${a.time}</div>
+      if (currentPage !== 'dashboard') return; // user navigated away
+
+      content.innerHTML = `
+        <div class="dashboard-grid">
+          <div>
+            <div class="stat-row">
+              <div class="stat-card">
+                <div class="stat-value" style="color:var(--accent)">${docs.length}</div>
+                <div class="stat-label">Total Docs</div>
               </div>
-            </div>`;
-          }).join('')}
+              <div class="stat-card">
+                <div class="stat-value" style="color:var(--success)">${approved}</div>
+                <div class="stat-label">Approved</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" style="color:var(--warning)">${inReview}</div>
+                <div class="stat-label">In Review</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" style="color:var(--info)">${totalComments}</div>
+                <div class="stat-label">Comments</div>
+              </div>
+            </div>
+
+            <div style="margin-top:20px">
+              <div class="section-header">
+                <h3>Recent Documents</h3>
+                <button class="btn btn-ghost btn-sm" onclick="navigate('documents')">View All</button>
+              </div>
+              <div class="recent-docs">
+                ${recentDocs.map(d => {
+                  const author = store.getUserByName(d.author) || store.users[0];
+                  const iconClass = d.type === 'db' ? 'db' : d.type === 'tsc' ? 'tsc' : 'hld';
+                  return `<div class="doc-row" onclick="navigate('editor','${d.id}')">
+                    <div class="doc-icon ${iconClass}">
+                      ${d.type === 'db' ?
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' :
+                      d.type === 'hld' ?
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' :
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>'
+                      }
+                    </div>
+                    <div class="doc-row-info">
+                      <div class="doc-name">${escapeHtml(d.title)}</div>
+                      <div class="doc-meta">${escapeHtml(author.name)} &middot; Updated ${formatDate(d.updatedAt)}</div>
+                    </div>
+                    <span class="badge-status badge-${d.status}">${d.status}</span>
+                  </div>`;
+                }).join('')}
+                ${recentDocs.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No documents yet. Create your first one!</div>' : ''}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-header">
+              <h3>Stats</h3>
+            </div>
+            <div class="activity-feed">
+              <div class="activity-item">
+                <div class="activity-avatar" style="background:#4c7bf5">RM</div>
+                <div class="activity-content">
+                  <div class="activity-text"><strong>${docs.length}</strong> documents, <strong>${totalComments}</strong> comments, <strong>${drafts}</strong> drafts</div>
+                  <div class="activity-time">Database-backed</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  `;
+      `;
+    } catch (e) {
+      showError(content, 'Failed to load dashboard: ' + e.message, "renderPage()");
+    }
+  })();
 }
 
 // ---- DOCUMENTS ----
@@ -2594,36 +2815,47 @@ function renderDocuments(content, title, actions) {
     New
   </button>`;
 
-  let docs = store.getDocuments();
-
-  if (docFilter !== 'all') {
-    if (['draft','review','approved','archived'].includes(docFilter)) {
-      docs = docs.filter(d => d.status === docFilter);
-    } else if (docFilter === 'hld' || docFilter === 'tsc' || docFilter === 'db') {
-      docs = docs.filter(d => d.type === docFilter);
-    }
-  }
-
-  if (docSearch) {
-    const q = docSearch.toLowerCase();
-    docs = docs.filter(d => d.title.toLowerCase().includes(q) || d.description.toLowerCase().includes(q));
-  }
-
+  // Show filters immediately, then load docs async
   content.innerHTML = `
     <div class="search-box" style="margin-bottom:12px;max-width:100%">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search documents..." value="${docSearch}" oninput="docSearch=this.value;renderPage()">
+      <input type="search" placeholder="Search documents..." value="${escapeHtml(docSearch)}" oninput="docSearch=this.value;renderPage()">
     </div>
     <div class="doc-filters">
       ${['all','draft','review','approved','hld','db'].map(f =>
         `<div class="filter-chip ${docFilter===f?'active':''}" onclick="docFilter='${f}';renderPage()">${f==='all'?'All':f==='hld'?'HLD':f==='tsc'?'TSC':f==='db'?'Database':f.charAt(0).toUpperCase()+f.slice(1)}</div>`
       ).join('')}
     </div>
-    <div class="doc-list">
-      ${docs.length === 0 ? `<div class="empty-state"><h3>No documents found</h3><p>Try adjusting your filters or create a new document.</p></div>` :
+    <div class="doc-list" id="docListContent"><div class="loading-spinner"><div class="spinner"></div>Loading documents...</div></div>
+  `;
+
+  (async () => {
+    try {
+      let docs = await loadDocuments();
+
+      if (docFilter !== 'all') {
+        if (['draft','review','approved','archived'].includes(docFilter)) {
+          docs = docs.filter(d => d.status === docFilter);
+        } else if (docFilter === 'hld' || docFilter === 'tsc' || docFilter === 'db') {
+          docs = docs.filter(d => d.type === docFilter);
+        }
+      }
+
+      if (docSearch) {
+        const q = docSearch.toLowerCase();
+        docs = docs.filter(d => (d.title || '').toLowerCase().includes(q) || (d.content || '').toLowerCase().includes(q));
+      }
+
+      const listEl = document.getElementById('docListContent');
+      if (!listEl || currentPage !== 'documents') return;
+
+      await updateSidebarCounts();
+
+      listEl.innerHTML = docs.length === 0 ?
+        `<div class="empty-state"><h3>No documents found</h3><p>Try adjusting your filters or create a new document.</p></div>` :
         docs.map(d => {
-          const author = store.getUser(d.author);
-          const tags = d.tags.map(tid => store.getTag(tid)).filter(Boolean);
+          const author = store.getUserByName(d.author) || store.users[0];
+          const tags = (d.tags || []).map(t => typeof t === 'string' && t.startsWith('t') ? store.getTag(t) : store.getTagByName(t)).filter(Boolean);
           const iconClass = d.type === 'db' ? 'db' : d.type === 'tsc' ? 'tsc' : 'hld';
           return `<div class="card card-clickable doc-card" onclick="navigate('editor','${d.id}')">
             <div class="doc-icon ${iconClass}" style="align-self:flex-start">
@@ -2635,29 +2867,29 @@ function renderDocuments(content, title, actions) {
               }
             </div>
             <div class="doc-card-body">
-              <div class="doc-card-title">${d.title}</div>
-              <div class="doc-card-desc">${d.description}</div>
+              <div class="doc-card-title">${escapeHtml(d.title)}</div>
+              <div class="doc-card-desc">${escapeHtml((d.content || '').replace(/<[^>]*>/g, '').slice(0, 200))}</div>
               <div class="doc-card-footer">
                 <span class="badge-status badge-${d.status}">${d.status}</span>
                 ${tags.map(t => `<span class="tag" style="background:${t.color}20;color:${t.color}">${t.name}</span>`).join('')}
-                <span class="meta">${author.name} &middot; ${formatDate(d.updatedAt)}</span>
+                <span class="meta">${escapeHtml(author.name)} &middot; ${formatDate(d.updatedAt)}</span>
               </div>
             </div>
           </div>`;
-        }).join('')
-      }
-    </div>
-  `;
+        }).join('');
+    } catch (e) {
+      const listEl = document.getElementById('docListContent');
+      if (listEl) listEl.innerHTML = `<div class="error-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span>Failed to load documents: ${escapeHtml(e.message)}</span><button class="retry-btn" onclick="renderPage()">Retry</button></div>`;
+    }
+  })();
 }
 
 // ---- EDITOR ----
-function renderEditor(content, title, actions) {
-  const doc = store.getDocument(currentDocId);
-  if (!doc) { navigate('documents'); return; }
+let currentEditorDoc = null; // cached doc for current editor session
 
+function renderEditor(content, title, actions) {
   title.textContent = '';
   actions.innerHTML = `
-    <span class="badge-status badge-${doc.status}" style="margin-right:4px">${doc.status}</span>
     <button class="btn-icon" onclick="toggleEditorSidebar()" title="Toggle sidebar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
     </button>
@@ -2667,152 +2899,203 @@ function renderEditor(content, title, actions) {
     </button>
   `;
 
-  const comments = doc.comments || [];
-  const versions = doc.versions || [];
-  const reviews = doc.reviews || [];
+  showLoading(content, 'Loading document...');
 
-  content.innerHTML = `
-    <div class="editor-layout">
-      <div class="editor-main">
-        <div class="editor-toolbar">
-          <button class="btn-icon" onclick="execCmd('bold')" title="Bold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
-          <button class="btn-icon" onclick="execCmd('italic')" title="Italic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
-          <button class="btn-icon" onclick="execCmd('underline')" title="Underline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
-          <div class="divider"></div>
-          <button class="btn-icon" onclick="execCmd('formatBlock','<h1>')" title="Heading 1" style="font-weight:700;font-size:14px">H1</button>
-          <button class="btn-icon" onclick="execCmd('formatBlock','<h2>')" title="Heading 2" style="font-weight:700;font-size:13px">H2</button>
-          <button class="btn-icon" onclick="execCmd('formatBlock','<h3>')" title="Heading 3" style="font-weight:700;font-size:12px">H3</button>
-          <div class="divider"></div>
-          <button class="btn-icon" onclick="execCmd('insertUnorderedList')" title="Bullet List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
-          <button class="btn-icon" onclick="execCmd('insertOrderedList')" title="Ordered List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></button>
-          <div class="divider"></div>
-          <button class="btn btn-sm btn-secondary" onclick="saveDocument()" style="margin-left:auto">Save</button>
-          ${doc.status === 'draft' ? `<button class="btn btn-sm btn-primary" onclick="submitForReview('${doc.id}')">Submit for Review</button>` : ''}
-          ${doc.status === 'review' ? `<button class="btn btn-sm btn-success" onclick="approveDocument('${doc.id}')">Approve</button>` : ''}
-        </div>
-        <input class="editor-title-input" id="editorTitle" value="${escapeHtml(doc.title)}" placeholder="Document title..." onchange="updateDocTitle()">
-        <div class="editor-area" id="editorArea" contenteditable="true" oninput="autoSaveDraft()">${doc.content}</div>
-      </div>
-      <div class="editor-sidebar" id="editorSidebar">
-        <div class="editor-sidebar-tabs">
-          <div class="editor-sidebar-tab ${editorSidebarTab==='comments'?'active':''}" onclick="editorSidebarTab='comments';renderEditorSidebar()">Comments (${comments.length})</div>
-          <div class="editor-sidebar-tab ${editorSidebarTab==='history'?'active':''}" onclick="editorSidebarTab='history';renderEditorSidebar()">History (${versions.length})</div>
-          <div class="editor-sidebar-tab ${editorSidebarTab==='review'?'active':''}" onclick="editorSidebarTab='review';renderEditorSidebar()">Review (${reviews.length})</div>
-        </div>
-        <div class="editor-sidebar-content" id="editorSidebarContent"></div>
-      </div>
-    </div>
-  `;
+  (async () => {
+    try {
+      const doc = await loadDocument(currentDocId, true);
+      if (!doc) { navigate('documents'); return; }
+      currentEditorDoc = doc;
 
-  renderEditorSidebar();
+      if (currentPage !== 'editor') return;
+
+      // Update actions with status
+      actions.innerHTML = `
+        <span class="badge-status badge-${doc.status}" style="margin-right:4px">${doc.status}</span>
+        <button class="btn-icon" onclick="toggleEditorSidebar()" title="Toggle sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('documents')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back
+        </button>
+      `;
+
+      content.innerHTML = `
+        <div class="editor-layout">
+          <div class="editor-main">
+            <div class="editor-toolbar">
+              <button class="btn-icon" onclick="execCmd('bold')" title="Bold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
+              <button class="btn-icon" onclick="execCmd('italic')" title="Italic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+              <button class="btn-icon" onclick="execCmd('underline')" title="Underline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
+              <div class="divider"></div>
+              <button class="btn-icon" onclick="execCmd('formatBlock','<h1>')" title="Heading 1" style="font-weight:700;font-size:14px">H1</button>
+              <button class="btn-icon" onclick="execCmd('formatBlock','<h2>')" title="Heading 2" style="font-weight:700;font-size:13px">H2</button>
+              <button class="btn-icon" onclick="execCmd('formatBlock','<h3>')" title="Heading 3" style="font-weight:700;font-size:12px">H3</button>
+              <div class="divider"></div>
+              <button class="btn-icon" onclick="execCmd('insertUnorderedList')" title="Bullet List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button class="btn-icon" onclick="execCmd('insertOrderedList')" title="Ordered List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></button>
+              <div class="divider"></div>
+              <button class="btn btn-sm btn-secondary" onclick="saveDocument()" style="margin-left:auto">Save</button>
+              ${doc.status === 'draft' ? `<button class="btn btn-sm btn-primary" onclick="submitForReview('${doc.id}')">Submit for Review</button>` : ''}
+              ${doc.status === 'review' ? `<button class="btn btn-sm btn-success" onclick="approveDocument('${doc.id}')">Approve</button>` : ''}
+            </div>
+            <input class="editor-title-input" id="editorTitle" value="${escapeHtml(doc.title)}" placeholder="Document title..." onchange="updateDocTitle()">
+            <div class="editor-area" id="editorArea" contenteditable="true" oninput="autoSaveDraft()">${doc.content}</div>
+          </div>
+          <div class="editor-sidebar" id="editorSidebar">
+            <div class="editor-sidebar-tabs">
+              <div class="editor-sidebar-tab ${editorSidebarTab==='comments'?'active':''}" onclick="editorSidebarTab='comments';renderEditorSidebar()">Comments</div>
+              <div class="editor-sidebar-tab ${editorSidebarTab==='history'?'active':''}" onclick="editorSidebarTab='history';renderEditorSidebar()">History</div>
+              <div class="editor-sidebar-tab ${editorSidebarTab==='review'?'active':''}" onclick="editorSidebarTab='review';renderEditorSidebar()">Review</div>
+            </div>
+            <div class="editor-sidebar-content" id="editorSidebarContent">
+              <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      renderEditorSidebar();
+    } catch (e) {
+      showError(content, 'Failed to load document: ' + e.message, "renderPage()");
+    }
+  })();
 }
 
 function renderEditorSidebar() {
-  const doc = store.getDocument(currentDocId);
-  if (!doc) return;
+  if (!currentDocId || !currentEditorDoc) return;
   const container = document.getElementById('editorSidebarContent');
   if (!container) return;
+  const doc = currentEditorDoc;
+
+  container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
   if (editorSidebarTab === 'comments') {
-    const comments = doc.comments || [];
-    container.innerHTML = `
-      ${comments.map(c => {
-        const author = store.getUser(c.author);
-        return `<div class="comment-thread">
-          <div class="comment ${c.resolved?'resolved':''}">
-            <div class="comment-header">
-              <div class="comment-avatar" style="background:${author.color}">${author.initials}</div>
-              <span class="comment-author">${author.name}</span>
-              <span class="comment-time">${formatDate(c.date)}</span>
-            </div>
-            <div class="comment-body">${escapeHtml(c.text)}</div>
-            <div class="comment-actions">
-              <button class="comment-action" onclick="toggleResolveComment('${doc.id}','${c.id}')">${c.resolved?'Reopen':'Resolve'}</button>
-              <button class="comment-action" onclick="showReplyInput('${c.id}')">Reply</button>
-            </div>
-          </div>
-          ${(c.replies||[]).map(r => {
-            const rAuthor = store.getUser(r.author);
-            return `<div class="comment comment-reply">
-              <div class="comment-header">
-                <div class="comment-avatar" style="background:${rAuthor.color}">${rAuthor.initials}</div>
-                <span class="comment-author">${rAuthor.name}</span>
-                <span class="comment-time">${formatDate(r.date)}</span>
+    (async () => {
+      try {
+        const comments = await loadComments(doc.id);
+        if (!document.getElementById('editorSidebarContent')) return;
+        container.innerHTML = `
+          ${comments.map(c => {
+            const authorUser = store.getUserByName(c.author) || store.users[0];
+            return `<div class="comment-thread">
+              <div class="comment ${c.resolved?'resolved':''}">
+                <div class="comment-header">
+                  <div class="comment-avatar" style="background:${authorUser.color}">${authorUser.initials}</div>
+                  <span class="comment-author">${escapeHtml(c.author || authorUser.name)}</span>
+                  <span class="comment-time">${formatDate(c.created_at)}</span>
+                </div>
+                <div class="comment-body">${escapeHtml(c.text)}</div>
+                <div class="comment-actions">
+                  <button class="comment-action" onclick="toggleResolveComment('${doc.id}','${c.id}')">${c.resolved?'Reopen':'Resolve'}</button>
+                  <button class="comment-action" onclick="showReplyInput('${c.id}')">Reply</button>
+                </div>
               </div>
-              <div class="comment-body">${escapeHtml(r.text)}</div>
+              ${(c.replies||[]).map(r => {
+                const rAuthor = store.getUserByName(r.author) || store.users[0];
+                return `<div class="comment comment-reply">
+                  <div class="comment-header">
+                    <div class="comment-avatar" style="background:${rAuthor.color}">${rAuthor.initials}</div>
+                    <span class="comment-author">${escapeHtml(r.author || rAuthor.name)}</span>
+                    <span class="comment-time">${formatDate(r.created_at)}</span>
+                  </div>
+                  <div class="comment-body">${escapeHtml(r.text)}</div>
+                </div>`;
+              }).join('')}
+              <div id="reply-${c.id}" style="display:none;margin-left:16px;margin-top:6px">
+                <textarea id="reply-text-${c.id}" placeholder="Write a reply..." rows="2" style="width:100%;font-size:12px"></textarea>
+                <button class="btn btn-primary btn-sm" onclick="addReply('${doc.id}','${c.id}')" style="margin-top:4px">Reply</button>
+              </div>
             </div>`;
           }).join('')}
-          <div id="reply-${c.id}" style="display:none;margin-left:16px;margin-top:6px">
-            <textarea id="reply-text-${c.id}" placeholder="Write a reply..." rows="2" style="width:100%;font-size:12px"></textarea>
-            <button class="btn btn-primary btn-sm" onclick="addReply('${doc.id}','${c.id}')" style="margin-top:4px">Reply</button>
+          <div class="comment-input-area" style="margin-top:12px">
+            <textarea id="newCommentText" placeholder="Add a comment..." rows="3"></textarea>
+            <button class="btn btn-primary btn-sm" onclick="addComment('${doc.id}')" style="margin-top:4px">Comment</button>
           </div>
-        </div>`;
-      }).join('')}
-      <div class="comment-input-area" style="margin-top:12px">
-        <textarea id="newCommentText" placeholder="Add a comment..." rows="3"></textarea>
-        <button class="btn btn-primary btn-sm" onclick="addComment('${doc.id}')" style="margin-top:4px">Comment</button>
-      </div>
-    `;
+        `;
+      } catch (e) {
+        container.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px">Failed to load comments: ${escapeHtml(e.message)}</div>`;
+      }
+    })();
   } else if (editorSidebarTab === 'history') {
-    const versions = doc.versions || [];
-    container.innerHTML = `
-      <div class="version-list">
-        ${versions.slice().reverse().map(v => {
-          const author = store.getUser(v.author);
-          return `<div class="version-item">
-            <div class="version-label">${escapeHtml(v.label)}</div>
-            <div class="version-meta">${author.name} &middot; ${formatDate(v.date)}</div>
-            <div class="version-diff">
-              <span class="diff-add">+${v.additions}</span> &nbsp;
-              <span class="diff-del">-${v.deletions}</span>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    `;
+    (async () => {
+      try {
+        const versions = await loadVersions(doc.id);
+        if (!document.getElementById('editorSidebarContent')) return;
+        container.innerHTML = `
+          <div class="version-list">
+            ${versions.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">No version history yet. Save to create the first version.</div>' : ''}
+            ${versions.slice().reverse().map(v => {
+              return `<div class="version-item">
+                <div class="version-label">v${v.version_number}: ${escapeHtml(v.change_summary || 'Updated')}</div>
+                <div class="version-meta">${escapeHtml(v.author || 'Ryan Murphy')} &middot; ${formatDate(v.created_at)}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        `;
+      } catch (e) {
+        container.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px">Failed to load history: ${escapeHtml(e.message)}</div>`;
+      }
+    })();
   } else if (editorSidebarTab === 'review') {
-    const reviews = doc.reviews || [];
-    const relatedDocs = (doc.relatedDocs || []).map(id => store.getDocument(id)).filter(Boolean);
-    container.innerHTML = `
-      <div class="review-info-section">
-        <h4>Status</h4>
-        <span class="badge-status badge-${doc.status}" style="font-size:13px">${doc.status}</span>
-      </div>
-      <div class="review-info-section">
-        <h4>Reviewers</h4>
-        ${reviews.map(r => {
-          const reviewer = store.getUser(r.reviewer);
-          return `<div class="reviewer-item">
-            <div class="reviewer-avatar" style="background:${reviewer.color}">${reviewer.initials}</div>
-            <span class="reviewer-name">${reviewer.name}</span>
-            <span class="reviewer-status ${r.status}">${r.status === 'approved' ? 'Approved' : r.status === 'changes' ? 'Changes' : 'Pending'}</span>
+    (async () => {
+      try {
+        const reviews = await loadReviews(doc.id);
+        // Load related docs
+        const relatedDocs = [];
+        for (const rdId of (doc.relatedDocs || [])) {
+          try {
+            const rd = await loadDocument(rdId);
+            if (rd) relatedDocs.push(rd);
+          } catch(e) {}
+        }
+        if (!document.getElementById('editorSidebarContent')) return;
+        const versions = await loadVersions(doc.id);
+        container.innerHTML = `
+          <div class="review-info-section">
+            <h4>Status</h4>
+            <span class="badge-status badge-${doc.status}" style="font-size:13px">${doc.status}</span>
           </div>
-          ${r.comment ? `<div style="font-size:11px;color:var(--text-muted);margin-left:32px;margin-bottom:6px">${escapeHtml(r.comment)}</div>` : ''}`;
-        }).join('')}
-        ${reviews.length === 0 ? '<div style="font-size:12px;color:var(--text-muted)">No reviewers assigned yet.</div>' : ''}
-      </div>
-      ${relatedDocs.length > 0 ? `
-      <div class="related-docs">
-        <h4>Related Documents</h4>
-        ${relatedDocs.map(rd => `
-          <div class="related-doc-link" onclick="navigate('editor','${rd.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            ${escapeHtml(rd.title)}
+          <div class="review-info-section">
+            <h4>Reviewers</h4>
+            ${reviews.map(r => {
+              const reviewer = store.getUserByName(r.reviewer) || store.users[0];
+              return `<div class="reviewer-item">
+                <div class="reviewer-avatar" style="background:${reviewer.color}">${reviewer.initials}</div>
+                <span class="reviewer-name">${escapeHtml(r.reviewer)}</span>
+                <span class="reviewer-status ${r.status}">${r.status === 'approved' ? 'Approved' : r.status === 'changes' ? 'Changes' : 'Pending'}</span>
+              </div>
+              ${r.comment ? `<div style="font-size:11px;color:var(--text-muted);margin-left:32px;margin-bottom:6px">${escapeHtml(r.comment)}</div>` : ''}`;
+            }).join('')}
+            ${reviews.length === 0 ? '<div style="font-size:12px;color:var(--text-muted)">No reviewers assigned yet.</div>' : ''}
           </div>
-        `).join('')}
-      </div>` : ''}
-      <div class="review-info-section" style="margin-top:12px">
-        <h4>Document Info</h4>
-        <div style="font-size:12px;color:var(--text-secondary);line-height:2">
-          <div><strong>Type:</strong> ${doc.type === 'db' ? 'Database Design' : doc.type.toUpperCase()}</div>
-          <div><strong>Author:</strong> ${store.getUser(doc.author).name}</div>
-          <div><strong>Created:</strong> ${formatDate(doc.createdAt)}</div>
-          <div><strong>Updated:</strong> ${formatDate(doc.updatedAt)}</div>
-          <div><strong>Versions:</strong> ${(doc.versions||[]).length}</div>
-          <div><strong>Tags:</strong> ${doc.tags.map(tid => {const t=store.getTag(tid);return t?t.name:''}).filter(Boolean).join(', ') || 'None'}</div>
-        </div>
-      </div>
-    `;
+          ${relatedDocs.length > 0 ? `
+          <div class="related-docs">
+            <h4>Related Documents</h4>
+            ${relatedDocs.map(rd => `
+              <div class="related-doc-link" onclick="navigate('editor','${rd.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                ${escapeHtml(rd.title)}
+              </div>
+            `).join('')}
+          </div>` : ''}
+          <div class="review-info-section" style="margin-top:12px">
+            <h4>Document Info</h4>
+            <div style="font-size:12px;color:var(--text-secondary);line-height:2">
+              <div><strong>Type:</strong> ${doc.type === 'db' ? 'Database Design' : doc.type.toUpperCase()}</div>
+              <div><strong>Author:</strong> ${escapeHtml(doc.author)}</div>
+              <div><strong>Created:</strong> ${formatDate(doc.createdAt)}</div>
+              <div><strong>Updated:</strong> ${formatDate(doc.updatedAt)}</div>
+              <div><strong>Versions:</strong> ${versions.length}</div>
+              <div><strong>Tags:</strong> ${(doc.tags || []).map(t => typeof t === 'string' && t.startsWith('t') ? (store.getTag(t)||{}).name : t).filter(Boolean).join(', ') || 'None'}</div>
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        container.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px">Failed to load reviews: ${escapeHtml(e.message)}</div>`;
+      }
+    })();
   }
 }
 
@@ -2829,7 +3112,9 @@ function execCmd(cmd, val) {
 function updateDocTitle() {
   const titleInput = document.getElementById('editorTitle');
   if (titleInput && currentDocId) {
-    store.updateDocument(currentDocId, { title: titleInput.value, updatedAt: today() });
+    DB.updateDocument(currentDocId, { title: titleInput.value }).catch(e => console.error('Title save error:', e));
+    cache.invalidate('documents');
+    if (currentEditorDoc) currentEditorDoc.title = titleInput.value;
   }
 }
 
@@ -2838,47 +3123,93 @@ function autoSaveDraft() {
   clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
     saveDocument(true);
-  }, 2000);
+  }, 3000);
 }
 
-function saveDocument(silent) {
+async function saveDocument(silent) {
   const area = document.getElementById('editorArea');
   const titleInput = document.getElementById('editorTitle');
   if (!area || !currentDocId) return;
-  store.updateDocument(currentDocId, {
-    content: area.innerHTML,
-    title: titleInput ? titleInput.value : undefined,
-    updatedAt: today()
-  });
-  if (!silent) showToast('Document saved', 'success');
+
+  const newContent = area.innerHTML;
+  const newTitle = titleInput ? titleInput.value : undefined;
+
+  try {
+    const fields = { content: newContent };
+    if (newTitle) fields.title = newTitle;
+    await DB.updateDocument(currentDocId, fields);
+
+    // Create a new version (non-silent saves only)
+    if (!silent) {
+      await DB.createVersion(currentDocId, newContent, 'Manual save', 'Ryan Murphy');
+      cache.invalidate('versions', currentDocId);
+    }
+
+    cache.invalidate('documents');
+    if (currentEditorDoc) {
+      currentEditorDoc.content = newContent;
+      if (newTitle) currentEditorDoc.title = newTitle;
+    }
+    if (!silent) {
+      showToast('Document saved', 'success');
+      // Refresh history tab if visible
+      if (editorSidebarTab === 'history') renderEditorSidebar();
+    }
+  } catch (e) {
+    if (!silent) showToast('Save failed: ' + e.message, 'error');
+    console.error('Save error:', e);
+  }
 }
 
-function submitForReview(docId) {
-  store.updateDocument(docId, { status: 'review', updatedAt: today() });
-  showToast('Submitted for review', 'success');
-  renderPage();
+async function submitForReview(docId) {
+  try {
+    await DB.updateDocument(docId, { status: 'review' });
+    cache.invalidate('documents');
+    showToast('Submitted for review', 'success');
+    navigate('editor', docId);
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
 }
 
-function approveDocument(docId) {
-  const user = store.getCurrentUser();
-  store.addReview(docId, { reviewer: user.id, status: 'approved', date: today(), comment: 'Approved.' });
-  showToast('Review submitted', 'success');
-  renderPage();
+async function approveDocument(docId) {
+  try {
+    const user = store.getCurrentUser();
+    // Check if this reviewer already has a review
+    const reviews = await loadReviews(docId, true);
+    const existing = reviews.find(r => r.reviewer === user.name);
+    if (existing) {
+      await DB.updateReview(existing.id, 'approved', 'Approved.');
+    } else {
+      await DB.addReview(docId, user.name, 'approved', 'Approved.');
+    }
+    cache.invalidate('reviews', docId);
+
+    // Check if all reviews are approved (need 2+)
+    const updatedReviews = await loadReviews(docId, true);
+    if (updatedReviews.length >= 2 && updatedReviews.every(r => r.status === 'approved')) {
+      await DB.updateDocument(docId, { status: 'approved' });
+      cache.invalidate('documents');
+    }
+
+    showToast('Review submitted', 'success');
+    navigate('editor', docId);
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
 }
 
-function addComment(docId) {
+async function addComment(docId) {
   const textarea = document.getElementById('newCommentText');
   if (!textarea || !textarea.value.trim()) return;
   const user = store.getCurrentUser();
-  store.addComment(docId, {
-    id: store.generateId(),
-    author: user.id,
-    text: textarea.value.trim(),
-    date: today(),
-    resolved: false,
-    replies: []
-  });
-  renderEditorSidebar();
+  try {
+    await DB.addComment(docId, null, null, user.name, textarea.value.trim());
+    cache.invalidate('comments', docId);
+    renderEditorSidebar();
+  } catch (e) {
+    showToast('Failed to add comment: ' + e.message, 'error');
+  }
 }
 
 function showReplyInput(commentId) {
@@ -2886,22 +3217,31 @@ function showReplyInput(commentId) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-function addReply(docId, commentId) {
+async function addReply(docId, commentId) {
   const textarea = document.getElementById('reply-text-' + commentId);
   if (!textarea || !textarea.value.trim()) return;
   const user = store.getCurrentUser();
-  store.addReply(docId, commentId, {
-    id: store.generateId(),
-    author: user.id,
-    text: textarea.value.trim(),
-    date: today()
-  });
-  renderEditorSidebar();
+  try {
+    await DB.addComment(docId, null, commentId, user.name, textarea.value.trim());
+    cache.invalidate('comments', docId);
+    renderEditorSidebar();
+  } catch (e) {
+    showToast('Failed to add reply: ' + e.message, 'error');
+  }
 }
 
-function toggleResolveComment(docId, commentId) {
-  store.toggleResolve(docId, commentId);
-  renderEditorSidebar();
+async function toggleResolveComment(docId, commentId) {
+  try {
+    // Find current state
+    const comments = await loadComments(docId);
+    const comment = comments.find(c => c.id === commentId);
+    const newResolved = comment ? !comment.resolved : true;
+    await DB.resolveComment(commentId, newResolved);
+    cache.invalidate('comments', docId);
+    renderEditorSidebar();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
 }
 
 // ---- TEMPLATES ----
@@ -2936,32 +3276,34 @@ function renderTemplates(content, title, actions) {
   `;
 }
 
-function createFromTemplate(templateId) {
+async function createFromTemplate(templateId) {
   const template = store.getTemplate(templateId);
   if (!template) return;
 
   const user = store.getCurrentUser();
-  const doc = {
-    id: store.generateId(),
-    title: template.name.replace('Template', '').trim() + ' - New',
-    type: template.type,
-    status: 'draft',
-    description: 'Created from template: ' + template.name,
-    content: template.content,
-    tags: [],
-    author: user.id,
-    collaborators: [],
-    createdAt: today(),
-    updatedAt: today(),
-    relatedDocs: [],
-    versions: [{ id: store.generateId(), label: 'Created from template', author: user.id, date: today(), additions: 100, deletions: 0 }],
-    comments: [],
-    reviews: []
-  };
+  const docId = crypto.randomUUID();
 
-  store.addDocument(doc);
-  showToast('Document created from template', 'success');
-  navigate('editor', doc.id);
+  try {
+    await DB.createDocument({
+      id: docId,
+      title: template.name.replace('Template', '').trim() + ' - New',
+      type: template.type,
+      status: 'draft',
+      content: template.content,
+      author: user.name,
+      tags: [],
+      related_doc_ids: []
+    });
+
+    // Create initial version
+    await DB.createVersion(docId, template.content, 'Created from template', user.name);
+
+    cache.invalidate('documents');
+    showToast('Document created from template', 'success');
+    navigate('editor', docId);
+  } catch (e) {
+    showToast('Failed to create document: ' + e.message, 'error');
+  }
 }
 
 // ---- REVIEWS ----
@@ -2969,48 +3311,61 @@ function renderReviews(content, title, actions) {
   title.textContent = 'Reviews';
   actions.innerHTML = '';
 
-  const docs = store.getDocuments();
-  const pending = docs.filter(d => d.status === 'review');
-  const approved = docs.filter(d => d.status === 'approved');
+  showLoading(content, 'Loading reviews...');
 
-  content.innerHTML = `
-    <div class="tabs">
-      <div class="tab active" onclick="switchReviewTab(this,'pending')">Pending (${pending.length})</div>
-      <div class="tab" onclick="switchReviewTab(this,'approved')">Approved (${approved.length})</div>
-    </div>
-    <div id="reviewContent">
-      <div class="review-list">
-        ${pending.length === 0 ? '<div class="empty-state"><h3>No pending reviews</h3><p>All documents have been reviewed.</p></div>' :
-          pending.map(d => renderReviewCard(d)).join('')
-        }
-      </div>
-    </div>
-  `;
+  (async () => {
+    try {
+      const docs = await loadDocuments();
+      const pending = docs.filter(d => d.status === 'review');
+      const approved = docs.filter(d => d.status === 'approved');
+
+      if (currentPage !== 'reviews') return;
+
+      content.innerHTML = `
+        <div class="tabs">
+          <div class="tab active" onclick="switchReviewTab(this,'pending')">Pending (${pending.length})</div>
+          <div class="tab" onclick="switchReviewTab(this,'approved')">Approved (${approved.length})</div>
+        </div>
+        <div id="reviewContent">
+          <div class="review-list">
+            ${pending.length === 0 ? '<div class="empty-state"><h3>No pending reviews</h3><p>All documents have been reviewed.</p></div>' :
+              pending.map(d => renderReviewCard(d)).join('')
+            }
+          </div>
+        </div>
+      `;
+    } catch (e) {
+      showError(content, 'Failed to load reviews: ' + e.message, "renderPage()");
+    }
+  })();
 }
 
-function switchReviewTab(el, tab) {
+async function switchReviewTab(el, tab) {
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
 
-  const docs = store.getDocuments();
-  const list = tab === 'pending' ? docs.filter(d => d.status === 'review') : docs.filter(d => d.status === 'approved');
+  const reviewContent = document.getElementById('reviewContent');
+  if (!reviewContent) return;
+  reviewContent.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
-  document.getElementById('reviewContent').innerHTML = `
-    <div class="review-list">
-      ${list.length === 0 ? `<div class="empty-state"><h3>No ${tab} reviews</h3></div>` :
-        list.map(d => renderReviewCard(d)).join('')
-      }
-    </div>
-  `;
+  try {
+    const docs = await loadDocuments();
+    const list = tab === 'pending' ? docs.filter(d => d.status === 'review') : docs.filter(d => d.status === 'approved');
+
+    reviewContent.innerHTML = `
+      <div class="review-list">
+        ${list.length === 0 ? `<div class="empty-state"><h3>No ${tab} reviews</h3></div>` :
+          list.map(d => renderReviewCard(d)).join('')
+        }
+      </div>
+    `;
+  } catch(e) {
+    reviewContent.innerHTML = `<div class="error-banner"><span>Failed to load: ${escapeHtml(e.message)}</span></div>`;
+  }
 }
 
 function renderReviewCard(d) {
-  const author = store.getUser(d.author);
-  const reviewers = (d.reviews || []).map(r => {
-    const rev = store.getUser(r.reviewer);
-    return `<span class="reviewer-status ${r.status}" style="font-size:11px">${rev.initials}: ${r.status}</span>`;
-  }).join(' &middot; ');
-
+  const author = store.getUserByName(d.author) || store.users[0];
   const iconClass = d.type === 'db' ? 'db' : d.type === 'tsc' ? 'tsc' : 'hld';
 
   return `<div class="card card-clickable review-card" onclick="navigate('editor','${d.id}')">
@@ -3025,7 +3380,7 @@ function renderReviewCard(d) {
     <div class="review-card-body">
       <div class="review-card-title">${escapeHtml(d.title)}</div>
       <div class="review-card-meta">
-        ${author.name} &middot; ${formatDate(d.updatedAt)} ${reviewers ? '&middot; ' + reviewers : ''}
+        ${escapeHtml(author.name)} &middot; ${formatDate(d.updatedAt)}
       </div>
     </div>
     <span class="badge-status badge-${d.status}">${d.status}</span>
@@ -3035,13 +3390,15 @@ function renderReviewCard(d) {
 // ---- DB VISUALIZER ----
 let currentSchemaText = nesifyErDiagram;
 let tableCommentPanelTable = null;
+let tableCommentCounts = {}; // cache for badge counts
 
 function renderVisualizer(content, title, actions) {
   title.textContent = 'DB Visualizer';
   actions.innerHTML = '';
 
-  const schemas = store.data.schemas || [];
+  const schemas = store.schemas || [];
 
+  // Render immediately with cached counts, then refresh counts async
   content.innerHTML = `
     <div class="visualizer-layout">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -3053,9 +3410,9 @@ function renderVisualizer(content, title, actions) {
         <div class="section-header">
           <h3>Tables (click to comment)</h3>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div id="tableButtonsArea" style="display:flex;gap:8px;flex-wrap:wrap">
           ${schemaTables.map(t => {
-            const count = store.getTableCommentCount(t);
+            const count = tableCommentCounts[t] || 0;
             return `<button class="btn btn-secondary btn-sm" onclick="openTableCommentPanel('${t}')" style="position:relative">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               ${t}
@@ -3081,11 +3438,36 @@ function renderVisualizer(content, title, actions) {
     </div>
   `;
 
+  // Load comment counts async
+  refreshTableCommentCounts();
+
   setTimeout(() => renderDiagram(), 100);
 }
 
+async function refreshTableCommentCounts() {
+  try {
+    const rows = await DB.query("SELECT table_name, COUNT(*) as cnt FROM hld_comments WHERE table_name IS NOT NULL AND parent_id IS NULL GROUP BY table_name");
+    tableCommentCounts = {};
+    for (const r of rows) {
+      tableCommentCounts[r.table_name] = parseInt(r.cnt) || 0;
+    }
+    // Update badges in DOM if still on visualizer
+    const area = document.getElementById('tableButtonsArea');
+    if (area && currentPage === 'visualizer') {
+      area.innerHTML = schemaTables.map(t => {
+        const count = tableCommentCounts[t] || 0;
+        return `<button class="btn btn-secondary btn-sm" onclick="openTableCommentPanel('${t}')" style="position:relative">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          ${t}
+          ${count > 0 ? `<span style="background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;margin-left:4px">${count}</span>` : ''}
+        </button>`;
+      }).join('');
+    }
+  } catch(e) { console.error('Failed to load table comment counts:', e); }
+}
+
 function loadSchema(schemaId) {
-  const schema = (store.data.schemas || []).find(s => s.id === schemaId);
+  const schema = (store.schemas || []).find(s => s.id === schemaId);
   if (!schema) return;
   currentSchemaText = schema.schema;
   const input = document.getElementById('schemaInput');
@@ -3140,12 +3522,15 @@ function closeTableCommentPanel() {
   if (panel) panel.remove();
 }
 
-function renderTableCommentPanel() {
-  closeTableCommentPanel();
+async function renderTableCommentPanel() {
+  // Remove existing
+  const existingOverlay = document.getElementById('tableCommentOverlay');
+  const existingPanel = document.getElementById('tableCommentPanel');
+  if (existingOverlay) existingOverlay.remove();
+  if (existingPanel) existingPanel.remove();
   if (!tableCommentPanelTable) return;
 
   const tableName = tableCommentPanelTable;
-  const comments = store.getTableComments(tableName);
 
   const overlay = document.createElement('div');
   overlay.className = 'table-comment-panel-overlay';
@@ -3164,50 +3549,62 @@ function renderTableCommentPanel() {
       </button>
     </div>
     <div class="table-comment-panel-body" id="tableCommentBody">
-      ${comments.length === 0 ? '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">No comments yet on this table.</div>' :
-        comments.map(c => `
-          <div class="comment-thread" style="margin-bottom:12px">
-            <div class="comment">
-              <div class="comment-header">
-                <div class="comment-avatar" style="background:var(--accent);">${(c.author || 'R')[0].toUpperCase()}</div>
-                <span class="comment-author">${escapeHtml(c.author || 'Ryan')}</span>
-                <span class="comment-time">${formatDate(c.date)}</span>
-              </div>
-              <div class="comment-body">${escapeHtml(c.text)}</div>
-              <div class="comment-actions">
-                <button class="comment-action" onclick="showTableReplyInput('${c.id}')">Reply</button>
-              </div>
-            </div>
-            ${(c.replies||[]).map(r => `
-              <div class="comment comment-reply">
-                <div class="comment-header">
-                  <div class="comment-avatar" style="background:var(--purple);">${(r.author || 'R')[0].toUpperCase()}</div>
-                  <span class="comment-author">${escapeHtml(r.author || 'Ryan')}</span>
-                  <span class="comment-time">${formatDate(r.date)}</span>
-                </div>
-                <div class="comment-body">${escapeHtml(r.text)}</div>
-              </div>
-            `).join('')}
-            <div id="table-reply-${c.id}" style="display:none;margin-left:16px;margin-top:6px">
-              <textarea id="table-reply-text-${c.id}" placeholder="Write a reply..." rows="2" style="width:100%;font-size:12px"></textarea>
-              <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
-                <input type="text" id="table-reply-author-${c.id}" placeholder="Your name" value="Ryan" style="flex:1;font-size:12px;padding:4px 8px">
-                <button class="btn btn-primary btn-sm" onclick="addTableCommentReply('${tableName}','${c.id}')">Reply</button>
-              </div>
-            </div>
-          </div>
-        `).join('')
-      }
+      <div class="loading-spinner"><div class="spinner"></div>Loading comments...</div>
     </div>
     <div class="table-comment-panel-footer">
       <textarea id="tableCommentText" placeholder="Add a comment about the ${tableName} table..." rows="3"></textarea>
       <div class="footer-row">
-        <input type="text" id="tableCommentAuthor" placeholder="Your name" value="Ryan">
+        <input type="text" id="tableCommentAuthor" placeholder="Your name" value="Ryan Murphy">
         <button class="btn btn-primary btn-sm" onclick="addTableCommentFromPanel('${tableName}')">Comment</button>
       </div>
     </div>
   `;
   document.body.appendChild(panel);
+
+  // Load comments async
+  try {
+    const comments = await loadTableComments(tableName, true);
+    const body = document.getElementById('tableCommentBody');
+    if (!body) return;
+
+    body.innerHTML = comments.length === 0 ?
+      '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">No comments yet on this table.</div>' :
+      comments.map(c => `
+        <div class="comment-thread" style="margin-bottom:12px">
+          <div class="comment">
+            <div class="comment-header">
+              <div class="comment-avatar" style="background:var(--accent);">${(c.author || 'R')[0].toUpperCase()}</div>
+              <span class="comment-author">${escapeHtml(c.author || 'Ryan')}</span>
+              <span class="comment-time">${formatDate(c.created_at)}</span>
+            </div>
+            <div class="comment-body">${escapeHtml(c.text)}</div>
+            <div class="comment-actions">
+              <button class="comment-action" onclick="showTableReplyInput('${c.id}')">Reply</button>
+            </div>
+          </div>
+          ${(c.replies||[]).map(r => `
+            <div class="comment comment-reply">
+              <div class="comment-header">
+                <div class="comment-avatar" style="background:var(--purple);">${(r.author || 'R')[0].toUpperCase()}</div>
+                <span class="comment-author">${escapeHtml(r.author || 'Ryan')}</span>
+                <span class="comment-time">${formatDate(r.created_at)}</span>
+              </div>
+              <div class="comment-body">${escapeHtml(r.text)}</div>
+            </div>
+          `).join('')}
+          <div id="table-reply-${c.id}" style="display:none;margin-left:16px;margin-top:6px">
+            <textarea id="table-reply-text-${c.id}" placeholder="Write a reply..." rows="2" style="width:100%;font-size:12px"></textarea>
+            <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
+              <input type="text" id="table-reply-author-${c.id}" placeholder="Your name" value="Ryan Murphy" style="flex:1;font-size:12px;padding:4px 8px">
+              <button class="btn btn-primary btn-sm" onclick="addTableCommentReply('${tableName}','${c.id}')">Reply</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+  } catch(e) {
+    const body = document.getElementById('tableCommentBody');
+    if (body) body.innerHTML = `<div style="padding:20px;color:var(--danger);font-size:13px">Failed to load comments: ${escapeHtml(e.message)}</div>`;
+  }
 }
 
 function showTableReplyInput(commentId) {
@@ -3215,41 +3612,33 @@ function showTableReplyInput(commentId) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-function addTableCommentFromPanel(tableName) {
+async function addTableCommentFromPanel(tableName) {
   const textarea = document.getElementById('tableCommentText');
   const authorInput = document.getElementById('tableCommentAuthor');
   if (!textarea || !textarea.value.trim()) return;
 
-  store.addTableComment(tableName, {
-    id: store.generateId(),
-    author: (authorInput && authorInput.value.trim()) || 'Ryan',
-    text: textarea.value.trim(),
-    date: today(),
-    replies: []
-  });
-
-  renderTableCommentPanel();
-  // Re-render the visualizer page to update badge counts
-  if (currentPage === 'visualizer') {
-    // Just update the table buttons area
-    const btns = document.querySelectorAll('.visualizer-layout .btn.btn-secondary');
-    // Simpler: just re-render
+  try {
+    await DB.addComment(null, tableName, null, (authorInput && authorInput.value.trim()) || 'Ryan Murphy', textarea.value.trim());
+    cache.invalidate('tableComments', tableName);
+    await renderTableCommentPanel();
+    refreshTableCommentCounts();
+  } catch(e) {
+    showToast('Failed to add comment: ' + e.message, 'error');
   }
 }
 
-function addTableCommentReply(tableName, commentId) {
+async function addTableCommentReply(tableName, commentId) {
   const textarea = document.getElementById('table-reply-text-' + commentId);
   const authorInput = document.getElementById('table-reply-author-' + commentId);
   if (!textarea || !textarea.value.trim()) return;
 
-  store.addTableCommentReply(tableName, commentId, {
-    id: store.generateId(),
-    author: (authorInput && authorInput.value.trim()) || 'Ryan',
-    text: textarea.value.trim(),
-    date: today()
-  });
-
-  renderTableCommentPanel();
+  try {
+    await DB.addComment(null, tableName, commentId, (authorInput && authorInput.value.trim()) || 'Ryan Murphy', textarea.value.trim());
+    cache.invalidate('tableComments', tableName);
+    await renderTableCommentPanel();
+  } catch(e) {
+    showToast('Failed to add reply: ' + e.message, 'error');
+  }
 }
 
 // ---- FEATURES ----
@@ -3351,7 +3740,7 @@ function renderFeatures(content, title, actions) {
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">The schema includes ${schemaTables.length} tables. Visit the DB Visualizer to see the full ER diagram and add comments.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
         ${schemaTables.map(t => {
-          const count = store.getTableCommentCount(t);
+          const count = tableCommentCounts[t] || 0;
           return `<div style="padding:8px 12px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:12px;font-family:var(--font-mono);color:var(--accent);display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="navigate('visualizer')">
             ${t}
             ${count > 0 ? `<span style="background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center">${count}</span>` : ''}
@@ -3415,7 +3804,7 @@ function showNewDocModal() {
   document.getElementById('newDocTitle').focus();
 }
 
-function createNewDoc() {
+async function createNewDoc() {
   const title = document.getElementById('newDocTitle').value.trim();
   const type = document.getElementById('newDocType').value;
   const desc = document.getElementById('newDocDesc').value.trim();
@@ -3431,28 +3820,30 @@ function createNewDoc() {
     if (tpl) content = tpl.content;
   }
 
-  const doc = {
-    id: store.generateId(),
-    title,
-    type,
-    status: 'draft',
-    description: desc || 'No description',
-    content,
-    tags: [],
-    author: user.id,
-    collaborators: [],
-    createdAt: today(),
-    updatedAt: today(),
-    relatedDocs: [],
-    versions: [{ id: store.generateId(), label: 'Initial draft', author: user.id, date: today(), additions: 50, deletions: 0 }],
-    comments: [],
-    reviews: []
-  };
+  const docId = crypto.randomUUID();
 
-  store.addDocument(doc);
-  document.getElementById('newDocModal').remove();
-  showToast('Document created', 'success');
-  navigate('editor', doc.id);
+  try {
+    await DB.createDocument({
+      id: docId,
+      title,
+      type,
+      status: 'draft',
+      content,
+      author: user.name,
+      tags: [],
+      related_doc_ids: []
+    });
+
+    // Create initial version
+    await DB.createVersion(docId, content, 'Initial draft', user.name);
+
+    cache.invalidate('documents');
+    document.getElementById('newDocModal').remove();
+    showToast('Document created', 'success');
+    navigate('editor', docId);
+  } catch (e) {
+    showToast('Failed to create document: ' + e.message, 'error');
+  }
 }
 
 // ============================================================
@@ -3491,6 +3882,59 @@ function showToast(message, type) {
 }
 
 // ============================================================
+// SEED DATA ON FIRST LOAD
+// ============================================================
+async function seedIfEmpty() {
+  try {
+    const rows = await DB.query("SELECT COUNT(*) as cnt FROM hld_documents");
+    const count = parseInt(rows[0]?.cnt) || 0;
+    if (count > 0) return; // already seeded
+
+    console.log('Seeding initial documents...');
+
+    // Seed API2 Proposal document
+    const doc1Id = crypto.randomUUID();
+    await DB.createDocument({
+      id: doc1Id,
+      title: 'api2 -- Workflow Registry API',
+      type: 'hld',
+      status: 'review',
+      content: api2ProposalContent,
+      author: 'Ryan Murphy',
+      tags: ['Architecture', 'API Design', 'Database'],
+      related_doc_ids: []
+    });
+
+    // Seed DB Schema document
+    const doc2Id = crypto.randomUUID();
+    await DB.createDocument({
+      id: doc2Id,
+      title: 'NESIFY Database Schema Design',
+      type: 'db',
+      status: 'review',
+      content: dbSchemaContent,
+      author: 'Ryan Murphy',
+      tags: ['Database', 'Architecture', 'Migration'],
+      related_doc_ids: []
+    });
+
+    // Link them as related
+    await DB.updateDocument(doc1Id, { related_doc_ids: [doc2Id] });
+    await DB.updateDocument(doc2Id, { related_doc_ids: [doc1Id] });
+
+    // Create initial versions
+    await DB.createVersion(doc1Id, api2ProposalContent, 'Initial proposal', 'Ryan Murphy');
+    await DB.createVersion(doc2Id, dbSchemaContent, 'Initial schema design', 'Ryan Murphy');
+
+    console.log('Seed complete. doc1=' + doc1Id + ', doc2=' + doc2Id);
+    cache.invalidateAll();
+  } catch (e) {
+    console.error('Seed failed:', e);
+    // Non-fatal -- app will work, just empty
+  }
+}
+
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -3506,7 +3950,13 @@ document.addEventListener('DOMContentLoaded', () => {
       tertiaryColor: '#1e2538'
     }
   });
-  renderPage();
+
+  // Seed, then render
+  seedIfEmpty().then(() => {
+    renderPage();
+  }).catch(() => {
+    renderPage();
+  });
 });
 </script>
 </body>
