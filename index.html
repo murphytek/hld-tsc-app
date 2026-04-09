@@ -1534,19 +1534,13 @@ const DB = {
           'Authorization': 'Bearer ' + DB_TOKEN
         },
         body: JSON.stringify({
-          query: `mutation { datasourceMutations { query(sql: ${JSON.stringify(sql)}) { columns rows } } }`
+          query: `mutation { datasourceMutations { query(sql: ${JSON.stringify(sql)}) { rows rowCount } } }`
         })
       });
       const json = await res.json();
       if (json.errors) throw new Error(json.errors[0].message);
       const result = json.data.datasourceMutations.query;
-      // Convert rows array-of-arrays to array-of-objects using columns
-      const cols = result.columns;
-      return result.rows.map(row => {
-        const obj = {};
-        cols.forEach((col, i) => { obj[col] = row[i]; });
-        return obj;
-      });
+      return result.rows;
     } catch (e) {
       console.error('DB.query error:', e, 'SQL:', sql);
       throw e;
